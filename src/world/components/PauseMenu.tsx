@@ -43,7 +43,7 @@ export function PauseMenu({ subjectTitle, settings, onSettingsChange, onResume, 
           الإعدادات
         </button>
         <button type="button" className="pause-menu__item pause-menu__item--quiet" onClick={onChapters}>
-          فتح فصول {subjectTitle} مباشرة
+          فتح دروس {subjectTitle} مباشرة
         </button>
       </div>
     </Overlay>

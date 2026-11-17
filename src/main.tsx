@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import '@fontsource/cairo/arabic-400.css'
 import '@fontsource/cairo/arabic-700.css'
 import '@fontsource/cairo/arabic-900.css'
 // Latin glyphs for nicknames typed in English letters.

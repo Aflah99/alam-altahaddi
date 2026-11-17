@@ -13,6 +13,8 @@ export interface LocalPlayerProfile {
   version: 1
   /** Marks the profile as a device-local guest, never a real account. */
   kind: 'local-guest'
+  /** Random id that ties local learning progress to this profile. Stable across edits. */
+  id: string
   characterId: CharacterId
   nickname: string
   updatedAt: string
@@ -48,10 +50,19 @@ export function suggestNickname(): string {
   return `${word}_${digits}`
 }
 
-export function createProfile(characterId: CharacterId, nickname: string): LocalPlayerProfile {
+function newId(): string {
+  try {
+    return crypto.randomUUID()
+  } catch {
+    return `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+  }
+}
+
+export function createProfile(characterId: CharacterId, nickname: string, id: string = newId()): LocalPlayerProfile {
   return {
     version: 1,
     kind: 'local-guest',
+    id,
     characterId,
     nickname: normalizeNickname(nickname),
     updatedAt: new Date().toISOString(),
@@ -65,10 +76,13 @@ export function loadProfile(): LocalPlayerProfile | null {
     const data = JSON.parse(raw) as Partial<LocalPlayerProfile>
     if (data.version !== 1 || !isCharacterId(data.characterId) || typeof data.nickname !== 'string') return null
     if (validateNickname(data.nickname)) return null
-    return {
-      ...createProfile(data.characterId, data.nickname),
+    const profile = {
+      // Task 03 profiles had no id: give them one (and keep it from now on).
+      ...createProfile(data.characterId, data.nickname, typeof data.id === 'string' && data.id ? data.id : undefined),
       updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : new Date().toISOString(),
     }
+    if (profile.id !== data.id) saveProfile(profile)
+    return profile
   } catch {
     return null
   }
