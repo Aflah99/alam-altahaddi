@@ -4,7 +4,7 @@ An Arabic (RTL) educational pixel-art adventure game for Grade 8 students, built
 
 **Live site:** https://aflah99.github.io/alam-altahaddi/
 
-> Status: **Task 01** — project foundation and a placeholder landing page. No gameplay yet.
+> Status: **Task 02** — animated pixel-art start menu. Game modes, parent login and accounts are placeholders for later tasks.
 
 ## Tech stack
 
@@ -36,15 +36,24 @@ npm run dev        # http://localhost:5173/alam-altahaddi/
 .github/workflows/deploy.yml   GitHub Pages deployment
 public/                        Files copied as-is (favicon)
 src/
-  assets/tiles/                Pixel-art tiles (grass, dirt)
-  components/                  Reusable UI pieces (PixelSprite, Slime, …)
+  assets/tiles/                Pixel-art tiles (grass, dirt, sky dither, horizon)
+  audio/sfx.ts                 Optional synthesised sound effects (off by default)
+  components/                  Reusable pieces: Sky, Ground, Slime, StartMenu, Overlay, …
+  content/startMenu.ts         Arabic menu and overlay text
+  hooks/useSettings.ts         Device-saved settings (reduced motion, sound)
+  screens/StartScreen.tsx      The start menu screen
   styles/global.css            Global tokens, fonts, resets
-  App.tsx / App.css            Current page
   config.ts                    Public app config + env access
-  main.tsx                     Entry point
+  main.tsx / App.tsx           Entry point
 ```
 
 Pixel art is drawn as character maps rendered to crisp SVG (`PixelSprite`), so sprites stay sharp at any screen size. All artwork is original.
+
+### Start menu controls
+
+- **Touch:** tap an option to select it (the heart moves), tap it again or tap «ابدأ» to open it.
+- **Keyboard:** ↑/↓ change the selection, Enter opens it, Escape closes an overlay.
+- **Settings:** reduced motion (defaults to the device preference) and sound effects (off by default), saved on the device.
 
 ## Deployment
 

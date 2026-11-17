@@ -1,0 +1,129 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  background: rgb(20 14 60 / 0.55);
+  animation: overlay-fade 180ms steps(3, end) both;
+}
+
+.overlay__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(100%, 460px);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 28px 22px 22px;
+  text-align: center;
+  color: var(--white);
+  background: var(--ink);
+  /* chunky two-tone pixel frame */
+  box-shadow:
+    inset 0 0 0 4px var(--white),
+    inset 0 0 0 8px var(--ink),
+    inset 0 0 0 10px var(--ink-light);
+  clip-path: polygon(
+    0 6px, 6px 6px, 6px 0,
+    calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px,
+    100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%,
+    6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)
+  );
+  animation: overlay-pop 220ms steps(4, end) both;
+}
+
+.overlay--leaving {
+  animation: overlay-fade 200ms steps(3, end) reverse both;
+}
+.overlay--leaving .overlay__panel {
+  animation: overlay-pop 200ms steps(3, end) reverse both;
+}
+
+.overlay__icon {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.overlay__title {
+  margin: 0;
+  font-weight: 900;
+  font-size: clamp(1.6rem, 6vw, 2.2rem);
+  line-height: 1.3;
+  text-shadow: 0 3px 0 #120c33;
+}
+
+.overlay__body {
+  width: 100%;
+  font-size: clamp(1rem, 4vw, 1.15rem);
+  line-height: 1.8;
+}
+
+.overlay__body p {
+  margin: 0 0 0.6em;
+}
+
+.overlay__status {
+  display: inline-block;
+  margin-top: 0.4em;
+  padding: 0.3em 0.8em;
+  color: var(--ink);
+  background: var(--sky-5);
+  font-weight: 700;
+}
+
+.pixel-button {
+  min-width: 140px;
+  min-height: 48px;
+  margin-top: 6px;
+  padding: 0 1.4em;
+  border: 0;
+  font: inherit;
+  font-weight: 900;
+  font-size: 1.2rem;
+  color: var(--ink);
+  background: var(--white);
+  cursor: pointer;
+  box-shadow: inset 0 -4px 0 #b9c3e8;
+  clip-path: polygon(
+    0 4px, 4px 4px, 4px 0,
+    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+}
+.pixel-button:active {
+  box-shadow: inset 0 4px 0 #b9c3e8;
+}
+.pixel-button:focus-visible {
+  outline: 3px dashed var(--sky-4);
+  outline-offset: -8px;
+}
+
+@media (max-height: 640px) {
+  .overlay__panel {
+    gap: 10px;
+    padding: 20px 16px 16px;
+  }
+  .overlay__icon {
+    display: none;
+  }
+}
+
+@keyframes overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlay-pop {
+  from { transform: scale(0.85) translateY(12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}

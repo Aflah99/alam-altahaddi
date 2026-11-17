@@ -1,0 +1,15 @@
+.ground {
+  --tile: calc(var(--px) * 32);
+  position: relative;
+  /* Dirt fills the platform; the grass strip sits on top, its tufts overhanging the sky. */
+  background: url('../assets/tiles/dirt.svg') 0 calc(var(--px) * 11) / var(--tile) var(--tile) repeat var(--dirt);
+}
+
+.ground::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--px) * -3);
+  height: calc(var(--px) * 14);
+  background: url('../assets/tiles/grass.svg') 0 0 / var(--tile) 100% repeat-x;
+}
