@@ -1,0 +1,162 @@
+/*
+ * Character sprite. Size = sprite pixels × --cell (set by the parent screen),
+ * so every character shares the same pixel density.
+ */
+.char {
+  position: relative;
+  flex: none;
+  width: calc(var(--w) * var(--cell, 4px));
+  height: calc(var(--h) * var(--cell, 4px));
+}
+
+.char__body {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-origin: 50% 100%;
+}
+
+.char__shadow {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--cell, 4px) * -0.6);
+  width: calc(var(--cell, 4px) * 12);
+  max-width: 80%;
+  height: calc(var(--cell, 4px) * 1.4);
+  translate: -50% 0;
+  background: rgb(14 60 30 / 0.32);
+  clip-path: polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%);
+  transform-origin: 50% 50%;
+}
+
+/* ---------- Face ---------- */
+.char__eyes {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: char-blink 4.7s steps(1, end) infinite;
+}
+.char__pupils {
+  animation: char-look 11s steps(1, end) infinite;
+}
+.char__joy {
+  display: none;
+}
+.char[data-mood='happy'] .char__eyes {
+  display: none;
+}
+.char[data-mood='happy'] .char__joy {
+  display: inline;
+}
+
+/* ---------- Body motion ---------- */
+.char[data-anim='idle'] .char__body {
+  animation: char-idle 4.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.char[data-anim='idle'] .char__shadow {
+  animation: char-idle-shadow 4.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.char[data-anim='hop'] .char__body {
+  animation: char-hop 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.char[data-anim='hop'] .char__shadow {
+  animation: char-hop-shadow 3.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.char[data-mood='happy'] .char__body {
+  animation: char-cheer 0.5s cubic-bezier(0.3, 0, 0.4, 1) 2;
+}
+.char[data-mood='happy'] .char__shadow {
+  animation: char-cheer-shadow 0.5s cubic-bezier(0.3, 0, 0.4, 1) 2;
+}
+
+/* ---------- Celebration sparkles ---------- */
+.char__sparkles {
+  position: absolute;
+  left: -30%;
+  top: -22%;
+  width: 160%;
+  height: 112%;
+  overflow: visible;
+  pointer-events: none;
+  visibility: hidden;
+}
+.char[data-mood='happy'] .char__sparkles {
+  visibility: visible;
+}
+.char__spark {
+  fill: #fff;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: char-spark 0.5s steps(3, end) infinite alternate;
+}
+.char__spark:nth-child(2) { fill: #ffe14d; animation-delay: -0.2s; }
+.char__spark:nth-child(3) { fill: #ff9ec0; animation-delay: -0.35s; }
+.char__spark:nth-child(4) { animation-delay: -0.1s; }
+
+/* ---------- Keyframes ---------- */
+@keyframes char-blink {
+  0%, 93%, 97% { transform: scaleY(1); }
+  94% { transform: scaleY(0.15); }
+}
+
+@keyframes char-look {
+  0% { transform: translateX(0); }
+  30% { transform: translateX(-1px); }
+  42% { transform: translateX(0); }
+  70% { transform: translateX(1px); }
+  80% { transform: translateX(0); }
+}
+
+@keyframes char-idle {
+  0%, 60%, 100% { transform: translateY(0) scale(1, 1); }
+  15%, 45% { transform: translateY(0) scale(1.02, 0.98); }
+  30% { transform: translateY(0) scale(0.99, 1.01); }
+  66% { transform: translateY(0) scale(1.08, 0.92); }
+  73% { transform: translateY(-9%) scale(0.95, 1.06); }
+  80% { transform: translateY(0) scale(1.08, 0.92); }
+  86% { transform: translateY(0) scale(0.98, 1.02); }
+}
+
+@keyframes char-idle-shadow {
+  0%, 66%, 80%, 100% { transform: scaleX(1); opacity: 1; }
+  73% { transform: scaleX(0.8); opacity: 0.7; }
+}
+
+@keyframes char-hop {
+  0%, 44% { transform: translateY(0) scale(1, 1); }
+  22% { transform: translateY(0) scale(1.015, 0.985); }
+  52% { transform: translateY(0) scale(1.12, 0.86); }
+  60% { transform: translateY(-14%) scale(0.92, 1.1); }
+  68% { transform: translateY(-22%) scale(0.98, 1.02); }
+  76% { transform: translateY(-6%) scale(0.95, 1.07); }
+  80% { transform: translateY(0) scale(1.16, 0.84); }
+  86% { transform: translateY(0) scale(0.96, 1.04); }
+  92% { transform: translateY(0) scale(1.02, 0.98); }
+  100% { transform: translateY(0) scale(1, 1); }
+}
+
+@keyframes char-hop-shadow {
+  0%, 44%, 100% { transform: scaleX(1); opacity: 1; }
+  52% { transform: scaleX(1.1); }
+  68% { transform: scaleX(0.7); opacity: 0.55; }
+  80% { transform: scaleX(1.14); opacity: 1; }
+}
+
+@keyframes char-cheer {
+  0% { transform: translateY(0) scale(1, 1) rotate(0); }
+  20% { transform: translateY(0) scale(1.14, 0.86) rotate(0); }
+  50% { transform: translateY(-26%) scale(0.92, 1.1) rotate(-5deg); }
+  80% { transform: translateY(0) scale(1.12, 0.88) rotate(4deg); }
+  100% { transform: translateY(0) scale(1, 1) rotate(0); }
+}
+
+@keyframes char-cheer-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  50% { transform: scaleX(0.7); opacity: 0.5; }
+}
+
+@keyframes char-spark {
+  from { transform: scale(0.4); opacity: 0.4; }
+  to { transform: scale(1.2); opacity: 1; }
+}

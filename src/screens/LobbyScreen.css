@@ -1,0 +1,316 @@
+/*
+ * Player lobby: HUD on top, a little side-view village standing on the ground.
+ * Portrait: two rows (portal + podium on a back hill, closet / player / shop in front).
+ * Landscape: one wide row.
+ */
+.lobby {
+  --ground-h: max(calc(var(--px) * 20), 15dvh);
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.lobby .sky {
+  bottom: var(--ground-h);
+}
+
+.lobby__ui {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+}
+
+.lobby__ground {
+  flex: none;
+  z-index: 1;
+  height: calc(var(--ground-h) + env(safe-area-inset-bottom));
+}
+
+/* Cobblestone path across the middle of the ground. */
+.lobby__path {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  inset-inline: 14%;
+  height: calc(var(--px) * 7);
+  background: url('../assets/tiles/path.svg') 0 0 / calc(var(--px) * 16) 100% repeat-x;
+}
+
+/* ---------- HUD ---------- */
+.lobby__hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left));
+}
+
+.hud-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'avatar text' 'demo demo';
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 4px;
+  padding: 8px 12px;
+  background: rgb(42 29 92 / 0.85);
+  clip-path: polygon(
+    0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+}
+.hud-card__avatar {
+  --cell: 2px;
+  grid-area: avatar;
+}
+.hud-card__text {
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.35;
+}
+.hud-card__nick {
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+.hud-card__char {
+  font-size: 0.85rem;
+  color: #ffe14d;
+}
+.hud-card__demo {
+  grid-area: demo;
+  justify-self: start;
+  padding: 1px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--sky-5);
+}
+
+.hud-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.icon-back {
+  /* PlayArrow points left (forward in RTL); back points right. */
+  scale: -1 1;
+}
+.corner-button .icon-back {
+  width: 9px;
+}
+
+/* ---------- World ---------- */
+.lobby__world {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.lobby__places {
+  --cell: clamp(2px, min(1.15vw, 0.8dvh), 11px);
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    'map treeA board'
+    'closet player shop';
+  align-items: end;
+  justify-items: center;
+  width: min(100%, 860px);
+  margin-inline: auto;
+  padding-inline: 8px;
+}
+
+/* Back hill: a second grassy platform behind the front row. */
+.lobby__places::before {
+  content: '';
+  grid-row: 2;
+  grid-column: 1 / -1;
+  align-self: stretch;
+  justify-self: center;
+  width: 100vw;
+  margin-top: calc(var(--cell) * 2);
+  background:
+    url('../assets/tiles/grass.svg') 0 0 / calc(var(--px) * 32) calc(var(--px) * 14) repeat-x,
+    linear-gradient(#2bbf55, #2bbf55) 0 calc(var(--px) * 8) / 100% 100% no-repeat;
+  clip-path: polygon(0 18%, 8% 18%, 8% 8%, 22% 8%, 22% 0, 78% 0, 78% 8%, 92% 8%, 92% 18%, 100% 18%, 100% 100%, 0 100%);
+}
+
+.place {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--cell) * 1.5);
+  min-width: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--white);
+  cursor: pointer;
+  /* stand in the grass */
+  margin-bottom: calc(var(--cell) * -2);
+}
+.place:focus-visible {
+  outline: 3px dashed var(--white);
+  outline-offset: 4px;
+}
+.place:active .place__art {
+  translate: 0 2px;
+}
+.place--map,
+.place--board {
+  margin-bottom: calc(var(--cell) * 0.5);
+}
+
+.place__art {
+  width: calc(var(--w) * var(--cell));
+  filter: drop-shadow(0 calc(var(--cell) * 0.8) 0 rgb(14 60 30 / 0.3));
+}
+
+.place__sign {
+  padding: 2px 10px 4px;
+  font-weight: 900;
+  font-size: clamp(0.8rem, calc(var(--cell) * 3.4), 1.15rem);
+  line-height: 1.4;
+  white-space: nowrap;
+  background: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--white);
+  transition: translate 120ms steps(2, end);
+}
+.place:hover .place__sign,
+.place:focus-visible .place__sign {
+  translate: 0 -3px;
+}
+
+/* Swirling portal: alternate between the drawn inside and its mirror image. */
+.portal-swirl {
+  animation: portal-swirl 1.2s steps(1, end) infinite;
+}
+@keyframes portal-swirl {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.trophy-glint {
+  animation: glint 2.4s steps(1, end) infinite;
+}
+@keyframes glint {
+  0%, 80% { opacity: 0; }
+  85%, 95% { opacity: 1; }
+}
+
+/* ---------- Player ---------- */
+.lobby__player {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--cell) * 2);
+  margin-bottom: calc(var(--cell) * -2);
+}
+.lobby__nametag {
+  padding: 1px 8px 3px;
+  font-weight: 900;
+  font-size: clamp(0.8rem, calc(var(--cell) * 3.2), 1.1rem);
+  white-space: nowrap;
+  color: var(--ink);
+  background: var(--white);
+  box-shadow: 0 3px 0 var(--ink);
+}
+.lobby__hero {
+  display: flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.lobby__hero:focus-visible {
+  outline: 3px dashed var(--white);
+  outline-offset: 6px;
+}
+.lobby__bush {
+  position: absolute;
+  bottom: calc(var(--cell) * -1);
+  width: calc(10 * var(--cell));
+  z-index: -1;
+}
+.lobby__bush--a { inset-inline-start: calc(var(--cell) * -14); }
+.lobby__bush--b { inset-inline-end: calc(var(--cell) * -13); }
+
+/* ---------- Trees ---------- */
+.lobby__tree {
+  width: calc(12 * var(--cell));
+  transform-origin: 50% 100%;
+  animation: tree-sway 3.2s steps(2, jump-none) infinite alternate;
+}
+.lobby__tree--a { grid-area: treeA; margin-bottom: calc(var(--cell) * 0.5); }
+.lobby__tree--b { display: none; }
+
+@keyframes tree-sway {
+  from { rotate: -1.5deg; }
+  to { rotate: 1.5deg; }
+}
+
+/* Overlay art for places */
+.overlay-sprite--place {
+  width: 88px;
+}
+
+/* ---------- Landscape: one wide street ---------- */
+@media (min-aspect-ratio: 5/4) {
+  .lobby__places {
+    --cell: clamp(2px, min(0.7vw, 1dvh), 10px);
+    grid-template-columns: repeat(7, auto);
+    grid-template-areas: 'treeA closet map player board shop treeB';
+    justify-content: space-evenly;
+    width: 100%;
+    max-width: 1400px;
+  }
+  .lobby__places::before {
+    grid-row: 1;
+    height: 38%;
+    align-self: end;
+  }
+  .place--map,
+  .place--board,
+  .lobby__tree--a {
+    margin-bottom: calc(var(--cell) * -2);
+  }
+  .lobby__tree--b {
+    display: block;
+    grid-area: treeB;
+    margin-bottom: calc(var(--cell) * -2);
+  }
+  .hud-actions {
+    flex-direction: row;
+  }
+}
+
+@media (min-aspect-ratio: 5/4) and (max-height: 520px) {
+  .lobby {
+    --ground-h: 56px;
+  }
+  .hud-card {
+    grid-template-areas: 'avatar text demo';
+    grid-template-columns: auto auto auto;
+    padding: 4px 10px;
+  }
+  .hud-card__demo {
+    align-self: center;
+  }
+}
