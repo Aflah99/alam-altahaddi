@@ -12,7 +12,7 @@ Stack: React + Vite + TypeScript, plain CSS, npm, Node 22 (`.nvmrc`). See `READM
 For every task the owner explicitly assigns, run the whole GitHub workflow yourself:
 
 1. Inspect the repository, then implement the change.
-2. Run `npm run typecheck`, `npm run lint` and `npm run build`; fix any errors.
+2. Run `npm run typecheck`, `npm run lint`, `npm test` and `npm run build`; fix any errors.
 3. Commit, push to a working branch, and open a pull request into `main`.
 4. Review the diff, then merge the PR yourself once checks pass. The owner has given
    standing permission to merge and deploy tested changes for assigned tasks.
