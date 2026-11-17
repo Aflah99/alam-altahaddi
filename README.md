@@ -4,7 +4,7 @@ An Arabic (RTL) educational pixel-art adventure game for Grade 8 students, built
 
 **Live site:** https://aflah99.github.io/alam-altahaddi/
 
-> Status: **Task 04** — start menu, character selection, lobby, adventure map and a playable side-scrolling world with a subject portal. Lessons and quizzes arrive in Task 05.
+> Status: **Task 05** — start menu, character selection, lobby, adventure map, a playable side-scrolling world, and textbook-based quiz missions (ساحة التحدّي) for «ديني قيمي» behind the world portal.
 
 ## Tech stack
 
@@ -29,7 +29,8 @@ npm run dev        # http://localhost:5173/alam-altahaddi/
 | `npm run build`     | Type-check and build into `dist/`     |
 | `npm run preview`   | Serve the production build locally    |
 | `npm run lint`      | Lint with oxlint                      |
-| `npm test`          | Unit tests (Vitest): physics, camera, routes |
+| `npm test`          | Unit tests (Vitest): physics, camera, routes, quiz engine, progress, **question-bank validation** |
+| `npm run report:coverage` | Regenerate the question-bank coverage report in `docs/question-bank/` |
 
 ## Project structure
 
@@ -44,8 +45,20 @@ src/
   content/                     Arabic text for menus, overlays and the lobby
   hooks/useSettings.ts         Device-saved settings (reduced motion, sound)
   lobby/                       Lobby building sprites and the LobbyPlace button
-  navigation/useHashRoute.ts   Hash routes: #/character, #/lobby, #/map, #/world/<subject>[/chapters]
-  player/                      Local guest profile (character + nickname) and the nickname field
+  navigation/useHashRoute.ts   Hash routes: #/character, #/lobby, #/map, #/world/<subject>[/chapters], #/quiz/<subject>/<lesson>/<n>
+  player/                      Local guest profile (id, character, nickname) and the nickname field
+  questions/
+    types.ts                   Typed question bank: Bank → Unit → Lesson → Question
+    data/<bank-id>/*.json      Authoring files, one per lesson (adapted MCQs, page refs, exclusions)
+    banks/                     One small file per bank that loads its JSON folder
+    normalize.ts               Authoring files → stable-ID, approved-only bank
+    validate.ts, arabic.ts     Validation pipeline with Arabic-aware text comparison (run by npm test)
+  quiz/
+    engine.ts                  Pure mission state machine (hint, retry, reveal, lock, summary)
+    progress.ts                Local learning progress per profile (Supabase-ready shape)
+    LessonSelectScreen.tsx     Units, lessons and missions behind a portal
+    QuizScreen.tsx             ساحة التحدّي
+    MissionResults.tsx, MistakeReview.tsx
   screens/                     StartScreen, CharacterSelectScreen, LobbyScreen
   styles/global.css            Global tokens, fonts, resets
   world/
@@ -55,8 +68,9 @@ src/
     components/                WorldScene, PortalGate, TouchControls, PauseMenu
     AdventureMapScreen.tsx     خريطة المغامرة
     WorldScreen.tsx            The playable world
-    ChapterSelectScreen.tsx    Chapters behind a portal (filled in Task 05)
 ```
+docs/question-bank/            Generated coverage report per bank
+scripts/coverage-report.mjs    Coverage report generator
 
 Pixel art is drawn as character maps rendered to crisp SVG. Every character shares one sprite system (`CharacterSprite`): idle breathing with a small hop, blinking, glancing, and a celebration (double hop, ^ ^ eyes, sparkles). All artwork is original.
 
@@ -90,9 +104,28 @@ Start menu: tap an option to select it, tap again or «ابدأ» to open it (�
 
 Settings: reduced motion (defaults to the device preference) and sound effects (off by default), saved on the device and available from the pause menu.
 
+### Quiz missions (ساحة التحدّي)
+
+World portal → lesson selection (units and lessons, each split into missions of up to 10 questions) → quiz arena → results.
+
+- Each question has four options and exactly one correct answer. Options are shuffled per mission.
+- **First wrong answer:** a hint and one more attempt. **Second wrong answer:** the correct answer is revealed. Every answer then shows «شرح الإجابة» and the source page.
+- Answers lock after confirming; double taps cannot skip a question; there are no timers. Leaving mid-mission asks for confirmation.
+- **Results:** first-try correct, correct after a hint/retry, revealed, and accuracy; buttons «مراجعة الأخطاء», «إعادة التحدّي», «اختيار درس آخر», «العودة إلى العالم». The review shows the student's answer, the correct answer, the explanation and the page.
+- **Progress** (best score per mission, answered and missed questions, last lesson) is saved in `localStorage` under the local profile id. It is not synced; the record shape is designed to move to Supabase later.
+- Returning to the world places the player beside the portal.
+
+### Question content
+
+The «ديني قيمي» bank (455 published questions, 21 lessons) was adapted by hand from the Grade 8 semester-1 revision booklet. Only adapted multiple-choice questions, short hints and explanations are published — **the booklet itself is not in this repository** (`*.pdf` is git-ignored) and is not needed to build or deploy. Facts come only from the booklet; every question carries its PDF page number. Source questions that were ambiguous, wrong in the source, open-ended or image-based were excluded and recorded with a reason. See [the coverage report](docs/question-bank/religion-values-g8-coverage.md).
+
+The bank is a static file bundled at build time. There are no runtime AI or API calls.
+
+**Adding a book:** create `src/questions/data/<bank-id>/` with one JSON file per lesson (same shape as the existing files; option 1 is the correct answer), add a 5-line loader in `src/questions/banks/`, register it in `src/quiz/useQuestionBank.ts`, and set `bankId` on the subject in `src/world/config/subjects.ts`. `npm test` validates the new bank automatically. No engine changes are needed.
+
 ## Deployment
 
-Every push to `main` runs `.github/workflows/deploy.yml`: `npm ci` → type check → `vite build` → upload `dist/` → deploy to GitHub Pages.
+Every push to `main` runs `.github/workflows/deploy.yml`: `npm ci` → type check → unit tests → `vite build` → upload `dist/` → deploy to GitHub Pages.
 
 One-time setup: **Repository → Settings → Pages → Build and deployment → Source → GitHub Actions.**
 

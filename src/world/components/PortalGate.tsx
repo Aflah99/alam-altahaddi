@@ -22,7 +22,7 @@ export function PortalGate({ x, title, near, onEnter }: PortalGateProps) {
       className={`wobj wportal${near ? ' wportal--near' : ''}`}
       style={{ '--x': x, '--y': 0, '--w': PORTAL.rows[0].length } as CSSProperties}
       onClick={onEnter}
-      aria-label={`بوابة ${title} — ادخل لاختيار الفصل`}
+      aria-label={`بوابة ${title} — ادخل لاختيار الدرس`}
     >
       <span className="wportal__glow" aria-hidden="true" />
       <PixelSprite rows={PORTAL.rows} palette={PORTAL.palette} className="wportal__art">

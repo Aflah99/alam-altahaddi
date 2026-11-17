@@ -11,6 +11,7 @@ export type Route =
   | { name: 'map' }
   | { name: 'world'; subject: string }
   | { name: 'chapters'; subject: string }
+  | { name: 'quiz'; subject: string; lesson: string; mission: number }
 
 export function routeToHash(route: Route): string {
   switch (route.name) {
@@ -26,6 +27,8 @@ export function routeToHash(route: Route): string {
       return `#/world/${encodeURIComponent(route.subject)}`
     case 'chapters':
       return `#/world/${encodeURIComponent(route.subject)}/chapters`
+    case 'quiz':
+      return `#/quiz/${encodeURIComponent(route.subject)}/${encodeURIComponent(route.lesson)}/${route.mission}`
   }
 }
 
@@ -34,6 +37,9 @@ export function parseHash(hash: string): Route {
   if (parts[0] === 'character') return { name: 'select' }
   if (parts[0] === 'lobby') return { name: 'lobby' }
   if (parts[0] === 'map') return { name: 'map' }
+  if (parts[0] === 'quiz' && parts[1] && parts[2] && Number(parts[3]) >= 1) {
+    return { name: 'quiz', subject: parts[1], lesson: parts[2], mission: Math.floor(Number(parts[3])) }
+  }
   if (parts[0] === 'world' && parts[1]) {
     return parts[2] === 'chapters' ? { name: 'chapters', subject: parts[1] } : { name: 'world', subject: parts[1] }
   }

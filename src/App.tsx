@@ -8,20 +8,23 @@ import { CharacterSelectScreen } from './screens/CharacterSelectScreen'
 import { LobbyScreen } from './screens/LobbyScreen'
 import { StartScreen } from './screens/StartScreen'
 import { AdventureMapScreen } from './world/AdventureMapScreen'
-import { ChapterSelectScreen } from './world/ChapterSelectScreen'
 import { WorldScreen } from './world/WorldScreen'
+import { LessonSelectScreen } from './quiz/LessonSelectScreen'
+import { QuizScreen } from './quiz/QuizScreen'
+import { useLearningProgress } from './quiz/useLearningProgress'
 import { LEVELS } from './world/config/levels'
 import { findSubject } from './world/config/subjects'
 
 /**
  * Flow: Start → «مغامرة فردية» → character selection → lobby → adventure map
- * → world → portal → chapters. Everything past character selection needs a
+ * → world → portal → lessons → quiz arena → results. Everything past character selection needs a
  * (local) profile; without one, character selection is shown first.
  */
 export function App() {
   const [settings, updateSettings] = useSettings()
   const { route, navigate, back } = useHashRoute()
   const [profile, saveProfile] = usePlayerProfile()
+  const [progress, recordProgress] = useLearningProgress(profile?.id ?? 'no-profile')
 
   const play = useCallback(
     (name: SfxName) => {
@@ -43,10 +46,15 @@ export function App() {
 
   let screen: string = route.name
   if (needsProfile && !profile) screen = 'select'
-  else if ((route.name === 'world' || route.name === 'chapters') && (!subject || !level)) screen = 'map'
+  else if ((route.name === 'world' || route.name === 'chapters' || route.name === 'quiz') && (!subject || !level)) screen = 'map'
 
   const character = profile ? getCharacter(profile.characterId) : null
-  const key = screen === 'world' || screen === 'chapters' ? `${screen}:${subject?.id}` : screen
+  const key =
+    route.name === 'quiz' && screen === 'quiz'
+      ? `quiz:${route.subject}:${route.lesson}:${route.mission}`
+      : screen === 'world' || screen === 'chapters'
+        ? `${screen}:${subject?.id}`
+        : screen
 
   return (
     <div key={key} className="screen">
@@ -103,10 +111,27 @@ export function App() {
         />
       )}
       {screen === 'chapters' && subject && (
-        <ChapterSelectScreen
+        <LessonSelectScreen
           subject={subject}
+          progress={progress}
+          onStartMission={(lesson, mission) => {
+            play('confirm')
+            navigate({ name: 'quiz', subject: subject.id, lesson, mission })
+          }}
           onBackToWorld={() => goBack({ name: 'world', subject: subject.id })}
-          onBackToMap={() => navigate({ name: 'map' })}
+        />
+      )}
+      {screen === 'quiz' && route.name === 'quiz' && subject && character && (
+        <QuizScreen
+          subject={subject}
+          lessonId={route.lesson}
+          missionNumber={route.mission}
+          character={character}
+          reducedMotion={settings.reducedMotion}
+          play={play}
+          onRecord={recordProgress}
+          onLessons={() => goBack({ name: 'chapters', subject: subject.id })}
+          onWorld={() => navigate({ name: 'world', subject: subject.id })}
         />
       )}
     </div>

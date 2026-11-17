@@ -40,3 +40,26 @@ export const LOCK: SpriteDef = {
   rows: ['..OOOO..', '.O....O.', '.O....O.', 'OOOOOOOO', 'OYYYYYYO', 'OYYOOYYO', 'OYYYYYYO', 'OOOOOOOO'],
   palette: { O: INK, Y: '#ffd23f' },
 }
+
+/** Closed book for lesson cards. */
+export const BOOK: SpriteDef = {
+  rows: [
+    '.OOOOOOOOO.',
+    'OGGGGGGGGLO',
+    'OGWWWWWWGLO',
+    'OGGGGGGGGLO',
+    'OGWWWWGGGLO',
+    'OGGGGGGGGLO',
+    'OGGGGGGGGLO',
+    'OGGGGGGGGLO',
+    'OPPPPPPPPPO',
+    '.OOOOOOOOO.',
+  ],
+  palette: { O: INK, G: '#4fb4ff', L: '#2a78d4', W: '#ffffff', P: '#fff4e6' },
+}
+
+/** Small pennant flag for the quiz arena. */
+export const PENNANT: SpriteDef = {
+  rows: ['OO....', 'ORRRO.', 'ORRRRO', 'ORRRO.', 'OO....', 'O.....', 'O.....', 'O.....'],
+  palette: { O: INK, R: '#ff4d6d' },
+}

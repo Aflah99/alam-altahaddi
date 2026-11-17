@@ -80,16 +80,20 @@ export function WorldScreen({ subject, level, character, settings, onSettingsCha
   const touch = useRef({ left: false, right: false, jump: false })
   const visual = useRef<{ state: PlayerState; facing: number; land: number }>({ state: 'idle', facing: 0, land: 0 })
 
+  const leftForPortal = useRef(false)
+
   const pause = useCallback(() => {
     touch.current = { left: false, right: false, jump: false }
     setPaused(true)
   }, [])
 
   const enterPortal = useCallback(() => {
-    worldSession.save(level.id, { x: body.current.x, facing: body.current.facing })
+    // Come back standing just to the right of the portal, facing it — however the portal was entered.
+    leftForPortal.current = true
+    worldSession.save(level.id, { x: level.portalX + PORTAL_W + 4, facing: -1 })
     play('confirm')
     onOpenChapters()
-  }, [level.id, onOpenChapters, play])
+  }, [level.id, level.portalX, onOpenChapters, play])
 
   const keyboard = useKeyboardControls({
     enabled: !paused,
@@ -193,7 +197,7 @@ export function WorldScreen({ subject, level, character, settings, onSettingsCha
   useEffect(() => {
     const b = body.current
     return () => {
-      worldSession.save(level.id, { x: b.x, facing: b.facing })
+      if (!leftForPortal.current) worldSession.save(level.id, { x: b.x, facing: b.facing })
     }
   }, [level.id])
 

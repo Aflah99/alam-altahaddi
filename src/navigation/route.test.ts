@@ -9,10 +9,16 @@ describe('hash routes', () => {
     { name: 'map' },
     { name: 'world', subject: 'religion-values' },
     { name: 'chapters', subject: 'religion-values' },
+    { name: 'quiz', subject: 'religion-values', lesson: 'u1-l6', mission: 2 },
   ]
 
   it.each(routes)('round-trips %o', (route) => {
     expect(parseHash(routeToHash(route))).toEqual(route)
+  })
+
+  it('rejects malformed quiz routes', () => {
+    expect(parseHash('#/quiz/religion-values/u1-l1/0').name).toBe('start')
+    expect(parseHash('#/quiz/religion-values').name).toBe('start')
   })
 
   it('treats unknown hashes as the start screen', () => {
