@@ -11,7 +11,7 @@ const files = readdirSync(DATA)
   .map((f) => JSON.parse(readFileSync(join(DATA, f), 'utf8')))
   .sort((a, b) => a.unit - b.unit || a.lesson - b.lesson)
 
-const UNIT = ['', 'الوحدة الأولى', 'الوحدة الثانية', 'الوحدة الثالثة']
+const UNIT = ['', 'الوحدة الأولى', 'الوحدة الثانية', 'الوحدة الثالثة', 'الوحدة الرابعة']
 let src = 0
 let pub = 0
 let exc = 0
@@ -34,9 +34,9 @@ let md = `# Coverage report — ديني قيمي, Grade 8 (semester 1)
 Source: «زاد الطالب في مادة ديني قيمي» — الصف الثامن الأساسي، الفصل الدراسي الأول ٢٠٢٥–٢٠٢٦ (إعداد: أ. فاطمة القرطوبية).
 The PDF is **not** stored in this repository. Only adapted multiple-choice questions are published.
 
-- **PDF pages provided and inspected:** 93 of 93 (pages 1–93). The file name ends in "1-93"; if the original booklet has more pages (the brief mentions 121), pages 94+ were **not provided** and are not covered.
-- **Page numbers:** the booklet has no printed page numbers, so every reference is the PDF page number.
-- **Structure found:** 3 units × 7 lessons = 21 lessons (pages 1–3 are the cover, a supplication page and the Unit 1 title page; unit title pages are 3, 33 and 63).
+- **PDF pages provided and inspected:** 121 of 121, delivered as two files: pages 1–93 and pages 94–121. Every page was read.
+- **Page numbers:** references use the continuous page number across both files (page 1 of the second file = page 94). Part 1 has no printed page numbers; in part 2 each lesson's first page carries a small circled lesson number, not a page number.
+- **Structure found:** 4 units, 27 lessons — units 1–3 have 7 lessons each, unit 4 has 6. Non-question pages: 1 (cover), 2 (supplication), unit title pages 3, 33, 63 and 94, and 121 (مقررات الحفظ — a memorisation list of سورتا التغابن والطلاق ١-٥ and four hadiths already covered in their lessons).
 - **Method:** every page was read from the rendered page image (text extraction garbles Arabic diacritics and Quranic text, so it was used only as an index). Questions were converted lesson by lesson, keeping the documented answers. Distractors are taken from other facts in the same booklet wherever possible, so each is demonstrably wrong for its question.
 
 ## Totals
@@ -67,7 +67,7 @@ ${flagged.join('\n')}
 | Unit | Lesson | Title | PDF pages | Source questions | Published MCQs | Exclusions |
 | --- | --- | --- | --- | --- | --- | --- |
 ${rows.join('\n')}
-| | | **Total** | 1–93 | **${src}** | **${pub}** | **${exc}** |
+| | | **Total** | 1–121 | **${src}** | **${pub}** | **${exc}** |
 
 ## Exclusions by lesson
 

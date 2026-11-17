@@ -3,22 +3,22 @@
 Source: «زاد الطالب في مادة ديني قيمي» — الصف الثامن الأساسي، الفصل الدراسي الأول ٢٠٢٥–٢٠٢٦ (إعداد: أ. فاطمة القرطوبية).
 The PDF is **not** stored in this repository. Only adapted multiple-choice questions are published.
 
-- **PDF pages provided and inspected:** 93 of 93 (pages 1–93). The file name ends in "1-93"; if the original booklet has more pages (the brief mentions 121), pages 94+ were **not provided** and are not covered.
-- **Page numbers:** the booklet has no printed page numbers, so every reference is the PDF page number.
-- **Structure found:** 3 units × 7 lessons = 21 lessons (pages 1–3 are the cover, a supplication page and the Unit 1 title page; unit title pages are 3, 33 and 63).
+- **PDF pages provided and inspected:** 121 of 121, delivered as two files: pages 1–93 and pages 94–121. Every page was read.
+- **Page numbers:** references use the continuous page number across both files (page 1 of the second file = page 94). Part 1 has no printed page numbers; in part 2 each lesson's first page carries a small circled lesson number, not a page number.
+- **Structure found:** 4 units, 27 lessons — units 1–3 have 7 lessons each, unit 4 has 6. Non-question pages: 1 (cover), 2 (supplication), unit title pages 3, 33, 63 and 94, and 121 (مقررات الحفظ — a memorisation list of سورتا التغابن والطلاق ١-٥ and four hadiths already covered in their lessons).
 - **Method:** every page was read from the rendered page image (text extraction garbles Arabic diacritics and Quranic text, so it was used only as an index). Questions were converted lesson by lesson, keeping the documented answers. Distractors are taken from other facts in the same booklet wherever possible, so each is demonstrably wrong for its question.
 
 ## Totals
 
 | | Count |
 | --- | --- |
-| Numbered source questions found | 367 |
-| Published multiple-choice questions | 455 |
-| Exclusion / merge records | 115 |
+| Numbered source questions found | 486 |
+| Published multiple-choice questions | 600 |
+| Exclusion / merge records | 143 |
 
 Some source questions are multi-part or tables and were split into several MCQs, so published questions can exceed source questions for a lesson.
 
-Exclusion reasons: duplicate 30, merged 34, too-open 19, split 2, list 11, image 9, too-long 7, flagged-source 2, sensitive 1.
+Exclusion reasons: duplicate 36, merged 44, too-open 22, split 2, list 14, image 12, too-long 9, flagged-source 3, sensitive 1.
 
 - **duplicate / merged** — same fact as another published question, or folded into one.
 - **split** — converted as several single-answer items.
@@ -31,6 +31,7 @@ Exclusion reasons: duplicate 30, merged 34, too-open 19, split 2, list 11, image
 
 - **U1 L6 (غزوة الأحزاب), Q26t (صف النتائج):** The table's «النتائج» row appears reversed (Muslims «خسروا سمعتهم وهيبتهم», Ahzab «نالوا العزة والرفعة»), contradicting Q24 in the same booklet. Not published; needs teacher review.
 - **U3 L5 (الحكم الشرعي التكليفي), Q12ج:** The booklet marks two options as correct (الفرض and المندوب) for «كل ما يُثاب فاعله» — not a single-answer question; excluded.
+- **U4 L6 (احترام الخصوصية), Q16د:** The booklet's answer for situation د (sharing a relative's private data seen at work) is copied from situation ج (photographing parties) and does not match the situation. Not published; needs teacher review.
 
 ## Lesson-by-lesson coverage
 
@@ -57,7 +58,13 @@ Exclusion reasons: duplicate 30, merged 34, too-open 19, split 2, list 11, image
 | 3 | 5 | الحكم الشرعي التكليفي | 80–83 | 13 | 21 | 5 |
 | 3 | 6 | خالد بن الوليد رضي الله عنه | 84–88 | 24 | 20 | 9 |
 | 3 | 7 | نعمة الأمن | 89–93 | 19 | 21 | 9 |
-| | | **Total** | 1–93 | **367** | **455** | **115** |
+| 4 | 1 | سورة العنكبوت (٤١-٤٤) | 95–98 | 16 | 25 | 4 |
+| 4 | 2 | الاعتدال في الطعام والشراب | 99–102 | 16 | 20 | 3 |
+| 4 | 3 | الله الغني | 103–106 | 20 | 24 | 3 |
+| 4 | 4 | العمرة | 107–111 | 28 | 35 | 6 |
+| 4 | 5 | سلمان الفارسي رضي الله عنه | 112–115 | 18 | 19 | 6 |
+| 4 | 6 | احترام الخصوصية | 116–120 | 21 | 22 | 6 |
+| | | **Total** | 1–121 | **486** | **600** | **143** |
 
 ## Exclusions by lesson
 
@@ -239,6 +246,52 @@ Exclusion reasons: duplicate 30, merged 34, too-open 19, split 2, list 11, image
 - Q15 — **duplicate**: Same items as Q16 (16-1..16-4).
 - Q17أ — **image**: Roles of family/school/coast guard are picture-based lists.
 - Q19 (الموقف الرابع) — **merged**: Kept three of the four situations.
+
+### الوحدة الرابعة — الدرس ١: سورة العنكبوت (٤١-٤٤)
+
+- Q2 — **merged**: Three wisdoms of parables; two kept as separate items (2a, 2b).
+- Q14 — **merged**: Four pieces of evidence listed; one kept, the others are all correct so cannot be distractors.
+- Q17ب — **merged**: Kept as one item with the booklet's answer.
+- Q26 — **list**: Four ways to protect the family; one kept as an item.
+
+### الوحدة الرابعة — الدرس ٢: الاعتدال في الطعام والشراب
+
+- Q13 — **merged**: Two words (شرًّا / لقيمات) folded into one application item.
+- Q15هـ — **merged**: Fast-food scenario overlaps 15ج (choosing healthy food); kept 15أ–د.
+- Q16 (الحلول) — **image**: Picture-based scene; the causes were kept as an item, the solutions repeat Q4/Q14.
+
+### الوحدة الرابعة — الدرس ٣: الله الغني
+
+- Q9 — **duplicate**: Same conclusion as Q7 (لم يتخذ صاحبة ولا ولدًا).
+- Q16 — **merged**: The five effects are asked one by one through Q17's texts.
+- Q19 — **duplicate**: Hadith qudsi conclusion repeats Q10 (لا ينفعه إيمانهم ولا تضره معصيتهم); long text not reproduced.
+
+### الوحدة الرابعة — الدرس ٤: العمرة
+
+- Q7 — **merged**: «هل في تكرار العمرة فضل؟ نعم» folded into Q9 (فضل العمرة).
+- Q24 — **list**: List of prohibitions; asked as one item (which action is NOT prohibited, using Q26's ruling).
+- Q25ب، 25ج، 25د — **duplicate**: True/false items repeat Q18, Q19 and Q17 (start at الصفا, هرولة for men only, اضطباع in طواف).
+- Q26 (٤، ٥) — **duplicate**: Repeat the prohibition of sewn clothes (Q24) and crossing the ميقات unrobed (Q12).
+- Q27أ — **too-open**: Photography during طواف — evaluative opinion; kept 27ب and 27ج, which have clear rulings.
+- Q28 — **image**: Diagram of the steps of Umrah; its facts are covered by Q10–Q20.
+
+### الوحدة الرابعة — الدرس ٥: سلمان الفارسي رضي الله عنه
+
+- Q4 — **merged**: Wealthy family (ضيعة عظيمة) folded into Q14 (زهده).
+- Q7 — **too-long**: Narrative of the journey; its key facts are asked in Q5, Q6, Q8 and Q9.
+- Q11 — **too-long**: Long narrative («يفهم الطالب النص ويعبّر عنه بأسلوبه»); its outcome is asked through Q10's three signs.
+- Q15أ، 15م — **duplicate**: Repeat Q12 (ابن الإسلام) and Q2 (المجوسية).
+- Q16 — **too-open**: Personal application.
+- Q18 — **merged**: Table of values; one row kept (التثبت من صحة المعلومة); others repeat Q13أ and Q17ب.
+
+### الوحدة الرابعة — الدرس ٦: احترام الخصوصية
+
+- Q3 — **too-open**: «في رأيك» opinion question.
+- Q4، 8 — **list**: Lists (causes, Islamic guidance); one cause and one guidance kept as items.
+- Q10 — **merged**: Folded into Q9 (حسن إسلام المرء).
+- Q16د — **flagged-source**: The booklet's answer for situation د (sharing a relative's private data seen at work) is copied from situation ج (photographing parties) and does not match the situation. Not published; needs teacher review.
+- Q19 — **image**: Picture-based roles; one role (الطبيبة) kept as an item.
+- Q20 (١، ٤) — **duplicate**: Repeat Q5 and Q17 (prying, defamation).
 
 ## Validation
 
