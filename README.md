@@ -4,7 +4,7 @@ An Arabic (RTL) educational pixel-art adventure game for Grade 8 students, built
 
 **Live site:** https://aflah99.github.io/alam-altahaddi/
 
-> Status: **Task 02** — animated pixel-art start menu. Game modes, parent login and accounts are placeholders for later tasks.
+> Status: **Task 03** — start menu, character selection and player lobby. Quizzes, accounts, coins and leaderboards are placeholders for later tasks.
 
 ## Tech stack
 
@@ -36,23 +36,33 @@ npm run dev        # http://localhost:5173/alam-altahaddi/
 .github/workflows/deploy.yml   GitHub Pages deployment
 public/                        Files copied as-is (favicon)
 src/
-  assets/tiles/                Pixel-art tiles (grass, dirt, sky dither, horizon)
+  assets/tiles/                Pixel-art tiles (grass, dirt, path, sky dither, horizon)
   audio/sfx.ts                 Optional synthesised sound effects (off by default)
-  components/                  Reusable pieces: Sky, Ground, Slime, StartMenu, Overlay, …
-  content/startMenu.ts         Arabic menu and overlay text
+  characters/                  Character roster data, CharacterSprite (shared animations), CharacterPreview
+  components/                  Shared UI: Sky, Ground, StartMenu, Overlay, SettingsPanel, PixelSprite, …
+  content/                     Arabic text for menus, overlays and the lobby
   hooks/useSettings.ts         Device-saved settings (reduced motion, sound)
-  screens/StartScreen.tsx      The start menu screen
+  lobby/                       Lobby building sprites and the LobbyPlace button
+  navigation/useHashRoute.ts   Hash routes: #/character, #/lobby (work on GitHub Pages and survive reloads)
+  player/                      Local guest profile (character + nickname) and the nickname field
+  screens/                     StartScreen, CharacterSelectScreen, LobbyScreen
   styles/global.css            Global tokens, fonts, resets
-  config.ts                    Public app config + env access
-  main.tsx / App.tsx           Entry point
 ```
 
-Pixel art is drawn as character maps rendered to crisp SVG (`PixelSprite`), so sprites stay sharp at any screen size. All artwork is original.
+Pixel art is drawn as character maps rendered to crisp SVG. Every character shares one sprite system (`CharacterSprite`): idle breathing with a small hop, blinking, glancing, and a celebration (double hop, ^ ^ eyes, sparkles). All artwork is original.
 
-### Start menu controls
+### Flow
 
-- **Touch:** tap an option to select it (the heart moves), tap it again or tap «ابدأ» to open it.
-- **Keyboard:** ↑/↓ change the selection, Enter opens it, Escape closes an overlay.
+Start screen → «مغامرة فردية» → character selection (اختر شخصيتك) → player lobby (ساحة اللاعب).
+
+- **Character selection:** arrows, swipe or ←/→ keys to browse; tap the character to make it celebrate; choose a nickname (or «اقتراح» for an anonymous one); «ابدأ المغامرة» confirms; Escape or «رجوع» goes back.
+- **Lobby:** the chosen character on a pixel village street. خريطة المغامرة, الخزانة, المتجر and المتصدرون open "coming later" panels. The player can change character or return to the menu.
+- **Profile storage:** the character and nickname are kept in `localStorage` as a `local-guest` profile. It is **not** an account, is not synced, and contains no personal information. The shape (`characterId`, `nickname`) is meant to move onto real student accounts later.
+
+### Controls
+
+- **Touch:** tap an option to select it, tap again or «ابدأ» to open it.
+- **Keyboard:** ↑/↓ and Enter on the start menu; ←/→ and Enter on character selection; Escape goes back or closes a panel.
 - **Settings:** reduced motion (defaults to the device preference) and sound effects (off by default), saved on the device.
 
 ## Deployment

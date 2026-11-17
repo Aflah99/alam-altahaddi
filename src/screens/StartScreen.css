@@ -101,8 +101,8 @@
 }
 
 .start__slime {
-  /* Big as the sprite scale allows, but leave head-room for the hop. */
-  --slime-h: min(calc(var(--px) * 13 * 3.6), 72cqh);
+  /* One sprite pixel: big as the scale allows, leaving head-room for the hop. */
+  --cell: min(calc(var(--px) * 3.6), calc(72cqh / 13));
   /* Sit the slime's base on the grass line (the grass tufts overhang 3 px). */
   margin-bottom: calc(var(--px) * -4);
 }

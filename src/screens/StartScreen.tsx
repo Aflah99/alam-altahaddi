@@ -8,9 +8,10 @@ import { Ground } from '../components/Ground'
 import { Overlay } from '../components/Overlay'
 import { SettingsPanel } from '../components/SettingsPanel'
 import { Sky } from '../components/Sky'
-import { Slime } from '../components/Slime'
 import { StartMenu } from '../components/StartMenu'
 import { FamilyIcon, GearIcon, MiniSlime } from '../components/sprites'
+import { CharacterSprite } from '../characters/CharacterSprite'
+import { getCharacter } from '../characters/roster'
 import './StartScreen.css'
 
 type OverlayId = ModeId | 'parent' | 'settings'
@@ -18,6 +19,8 @@ type OverlayId = ModeId | 'parent' | 'settings'
 interface StartScreenProps {
   settings: Settings
   onSettingsChange: (patch: Partial<Settings>) => void
+  /** «مغامرة فردية» leads to character selection. */
+  onStartSolo: () => void
 }
 
 const OVERLAY_ICONS: Record<OverlayId, ReactNode> = {
@@ -33,7 +36,9 @@ const OVERLAY_ICONS: Record<OverlayId, ReactNode> = {
   settings: <GearIcon className="overlay-sprite overlay-sprite--icon" />,
 }
 
-export function StartScreen({ settings, onSettingsChange }: StartScreenProps) {
+const MASCOT = getCharacter('green-slime')
+
+export function StartScreen({ settings, onSettingsChange, onStartSolo }: StartScreenProps) {
   const [selected, setSelected] = useState(0)
   const [overlay, setOverlay] = useState<OverlayId | null>(null)
 
@@ -60,7 +65,16 @@ export function StartScreen({ settings, onSettingsChange }: StartScreenProps) {
     [sound],
   )
 
-  const activate = useCallback((i: number) => open(MENU_ITEMS[i].id), [open])
+  const activate = useCallback(
+    (i: number) => {
+      const id = MENU_ITEMS[i].id
+      if (id === 'solo') {
+        sound('confirm')
+        onStartSolo()
+      } else open(id)
+    },
+    [open, sound, onStartSolo],
+  )
   const close = useCallback(() => setOverlay(null), [])
 
   const changeSettings = (patch: Partial<Settings>) => {
@@ -93,7 +107,7 @@ export function StartScreen({ settings, onSettingsChange }: StartScreenProps) {
         </main>
 
         <div className="start__stage">
-          <Slime className="start__slime" />
+          <CharacterSprite character={MASCOT} anim="hop" className="start__slime" />
         </div>
       </div>
 
