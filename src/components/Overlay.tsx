@@ -10,13 +10,15 @@ interface OverlayProps {
   /** Fired immediately when the user asks to go back (for sound effects). */
   onBack?: () => void
   reducedMotion: boolean
+  /** Text of the closing button (default «رجوع»). */
+  backLabel?: string
 }
 
 /**
  * Pixel-art dialog panel. Closes with its back button or Escape, focuses itself
  * on open and returns focus to whatever opened it.
  */
-export function Overlay({ title, icon, children, onClose, onBack, reducedMotion }: OverlayProps) {
+export function Overlay({ title, icon, children, onClose, onBack, reducedMotion, backLabel = 'رجوع' }: OverlayProps) {
   const titleId = useId()
   const backRef = useRef<HTMLButtonElement>(null)
   const [leaving, setLeaving] = useState(false)
@@ -67,7 +69,7 @@ export function Overlay({ title, icon, children, onClose, onBack, reducedMotion 
         </h2>
         <div className="overlay__body">{children}</div>
         <button ref={backRef} type="button" className="pixel-button" onClick={requestClose}>
-          رجوع
+          {backLabel}
         </button>
       </section>
     </div>

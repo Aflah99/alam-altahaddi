@@ -46,6 +46,11 @@ export const sfx = {
       { freq: 494, at: 0, dur: 0.06 },
       { freq: 330, at: 0.06, dur: 0.1 },
     ]),
+  jump: () =>
+    play([
+      { freq: 392, at: 0, dur: 0.05 },
+      { freq: 587, at: 0.04, dur: 0.07 },
+    ], 'square', 0.035),
   toggle: () => play([{ freq: 880, at: 0, dur: 0.05 }], 'triangle', 0.08),
 }
 

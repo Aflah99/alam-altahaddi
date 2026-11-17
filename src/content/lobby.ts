@@ -6,12 +6,9 @@ export type LobbyPlaceId = 'map' | 'closet' | 'shop' | 'board'
 
 export const LOBBY_PLACES: Record<LobbyPlaceId, { label: string; info: InfoContent }> = {
   map: {
+    // Opens the adventure map screen (no info panel).
     label: 'خريطة المغامرة',
-    info: {
-      title: 'خريطة المغامرة',
-      paragraphs: ['من هذه البوابة ستختار المادة الدراسية والمستوى، ثم تنطلق في مراحل المغامرة.'],
-      status: 'الخريطة غير متاحة بعد، وستُضاف في مهمة قادمة.',
-    },
+    info: { title: 'خريطة المغامرة', paragraphs: [], status: '' },
   },
   closet: {
     label: 'الخزانة',

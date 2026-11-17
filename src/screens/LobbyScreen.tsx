@@ -18,6 +18,8 @@ import './LobbyScreen.css'
 interface LobbyScreenProps {
   profile: LocalPlayerProfile
   onChangeCharacter: () => void
+  /** خريطة المغامرة leads to the adventure map. */
+  onOpenMap: () => void
   onHome: () => void
   play: (name: SfxName) => void
   reducedMotion: boolean
@@ -31,7 +33,7 @@ const PLACE_SPRITES: Record<LobbyPlaceId, SpriteDef> = {
 }
 
 /** The player's home base: a small pixel village with entrances to future features. */
-export function LobbyScreen({ profile, onChangeCharacter, onHome, play, reducedMotion }: LobbyScreenProps) {
+export function LobbyScreen({ profile, onChangeCharacter, onOpenMap, onHome, play, reducedMotion }: LobbyScreenProps) {
   const character = getCharacter(profile.characterId)
   const [open, setOpen] = useState<LobbyPlaceId | null>(null)
   const [cheering, setCheering] = useState(!reducedMotion)
@@ -62,8 +64,9 @@ export function LobbyScreen({ profile, onChangeCharacter, onHome, play, reducedM
   }, [open, onHome])
 
   const openPlace = (id: LobbyPlaceId) => {
-    setOpen(id)
     play('confirm')
+    if (id === 'map') onOpenMap()
+    else setOpen(id)
   }
 
   const info = open ? LOBBY_PLACES[open].info : null
