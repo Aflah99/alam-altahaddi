@@ -3,7 +3,7 @@ import type { AuthoringLessonFile } from '../types'
 
 /**
  * ديني قيمي — Grade 8, semester 1 revision booklet («زاد الطالب»).
- * Questions were converted from the provided PDF (93 pages) and reviewed
+ * Questions were converted from the provided PDF (two parts, 121 pages) and reviewed
  * against the rendered pages. The PDF itself is NOT part of this repository.
  */
 const files = import.meta.glob<AuthoringLessonFile>('../data/religion-values-g8/*.json', {
@@ -17,7 +17,7 @@ export const RELIGION_VALUES_G8 = buildBank(
     subjectId: 'religion-values',
     prefix: 'rv8',
     title: 'زاد الطالب في مادة ديني قيمي — الصف الثامن، الفصل الدراسي الأول',
-    pdfPages: 93,
+    pdfPages: 121,
   },
   Object.values(files),
 )

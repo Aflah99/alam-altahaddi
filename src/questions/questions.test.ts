@@ -8,12 +8,14 @@ const lessons = allLessons(bank)
 const questions = lessons.flatMap((l) => l.questions)
 
 describe('question bank: structure', () => {
-  it('has three units of seven lessons each, in booklet order', () => {
-    expect(bank.units.map((u) => u.number)).toEqual([1, 2, 3])
-    for (const u of bank.units) expect(u.lessons.map((l) => l.number)).toEqual([1, 2, 3, 4, 5, 6, 7])
+  it('has units 1–3 with seven lessons and unit 4 with six, in booklet order', () => {
+    expect(bank.units.map((u) => u.number)).toEqual([1, 2, 3, 4])
+    for (const u of bank.units.slice(0, 3)) expect(u.lessons.map((l) => l.number)).toEqual([1, 2, 3, 4, 5, 6, 7])
+    expect(bank.units[3].lessons.map((l) => l.number)).toEqual([1, 2, 3, 4, 5, 6])
+    expect(bank.units[3].title).toBe('الوحدة الرابعة')
   })
 
-  it('lesson page ranges are increasing and inside the 93-page PDF', () => {
+  it('lesson page ranges are increasing and inside the 121-page PDF', () => {
     let last = 0
     for (const l of lessons) {
       expect(l.pages[0]).toBeGreaterThan(last)
@@ -27,7 +29,7 @@ describe('question bank: structure', () => {
   })
 
   it('publishes a substantial number of questions', () => {
-    expect(questions.length).toBeGreaterThan(400)
+    expect(questions.length).toBeGreaterThan(550)
   })
 
   it('maps questions to the right lesson', () => {

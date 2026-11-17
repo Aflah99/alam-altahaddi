@@ -117,7 +117,7 @@ World portal → lesson selection (units and lessons, each split into missions o
 
 ### Question content
 
-The «ديني قيمي» bank (455 published questions, 21 lessons) was adapted by hand from the Grade 8 semester-1 revision booklet. Only adapted multiple-choice questions, short hints and explanations are published — **the booklet itself is not in this repository** (`*.pdf` is git-ignored) and is not needed to build or deploy. Facts come only from the booklet; every question carries its PDF page number. Source questions that were ambiguous, wrong in the source, open-ended or image-based were excluded and recorded with a reason. See [the coverage report](docs/question-bank/religion-values-g8-coverage.md).
+The «ديني قيمي» bank (600 published questions, 27 lessons in 4 units, from all 121 pages) was adapted by hand from the Grade 8 revision booklet (provided as two PDF files, pages 1–93 and 94–121). Only adapted multiple-choice questions, short hints and explanations are published — **the booklet itself is not in this repository** (`*.pdf` is git-ignored) and is not needed to build or deploy. Facts come only from the booklet; every question carries its PDF page number. Source questions that were ambiguous, wrong in the source, open-ended or image-based were excluded and recorded with a reason. See [the coverage report](docs/question-bank/religion-values-g8-coverage.md).
 
 The bank is a static file bundled at build time. There are no runtime AI or API calls.
 
