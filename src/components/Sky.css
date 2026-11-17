@@ -1,0 +1,71 @@
+.sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--sky-1);
+}
+
+/*
+ * Each band starts at --top and fills downward; a dithered strip in the
+ * band ABOVE's colour hangs over its top edge, so seams look hand-pixelled.
+ */
+.sky__band {
+  position: absolute;
+  inset-inline: 0;
+  top: var(--top);
+  bottom: 0;
+  background: var(--c);
+}
+.sky__band::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: calc(var(--px) * 16);
+  background: var(--prev);
+  -webkit-mask: url('../assets/tiles/sky-dither.svg') 0 0 / calc(var(--px) * 64) 100% repeat-x;
+  mask: url('../assets/tiles/sky-dither.svg') 0 0 / calc(var(--px) * 64) 100% repeat-x;
+}
+.sky__band--1 { --top: 0%; --c: var(--sky-1); }
+.sky__band--1::before { display: none; }
+.sky__band--2 { --top: 14%; --c: var(--sky-2); --prev: var(--sky-1); }
+.sky__band--3 { --top: 34%; --c: var(--sky-3); --prev: var(--sky-2); }
+.sky__band--4 { --top: 56%; --c: var(--sky-4); --prev: var(--sky-3); }
+.sky__band--5 { --top: 74%; --c: var(--sky-5); --prev: var(--sky-4); }
+/* Offset the dither pattern per seam so the bands don't look copy-pasted. */
+.sky__band--3::before { -webkit-mask-position: calc(var(--px) * 22) 0; mask-position: calc(var(--px) * 22) 0; }
+.sky__band--4::before { -webkit-mask-position: calc(var(--px) * 46) 0; mask-position: calc(var(--px) * 46) 0; }
+.sky__band--5::before { -webkit-mask-position: calc(var(--px) * 10) 0; mask-position: calc(var(--px) * 10) 0; }
+
+/* Distant cloud bank sitting on the horizon, drifting very slowly. */
+.sky__horizon {
+  --tile: calc(var(--px) * 64);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: calc(100% + var(--tile));
+  height: calc(var(--px) * 16);
+  background: url('../assets/tiles/horizon.svg') 0 100% / var(--tile) 100% repeat-x;
+  animation: horizon-drift 90s linear infinite;
+}
+
+@keyframes horizon-drift {
+  to { transform: translateX(calc(-1 * var(--tile))); }
+}
+
+.sky__cloud {
+  position: absolute;
+  left: 0;
+  width: calc(var(--px) * 20 * var(--s, 2));
+  animation: cloud-drift var(--d, 120s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+.sky__cloud--a { top: 6%; --s: 2; --d: 140s; --delay: -30s; }
+.sky__cloud--b { top: 30%; --s: 2.6; --d: 170s; --delay: -120s; }
+.sky__cloud--c { top: 52%; --s: 1.4; --d: 110s; --delay: -70s; opacity: 0.85; }
+.sky__cloud--d { top: 68%; --s: 1.8; --d: 200s; --delay: -10s; opacity: 0.9; }
+
+@keyframes cloud-drift {
+  from { transform: translateX(calc(-100% - 8px)); }
+  to { transform: translateX(calc(100vw + 8px)); }
+}

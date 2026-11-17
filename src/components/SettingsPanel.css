@@ -1,0 +1,86 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: start;
+}
+
+.setting {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 12px 14px;
+  background: var(--ink-light);
+}
+
+.setting__text {
+  display: contents;
+}
+.setting__desc {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.setting__label {
+  font-weight: 900;
+  font-size: 1.15rem;
+}
+
+.setting__desc {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  opacity: 0.85;
+}
+
+.settings__note {
+  margin: 0;
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0.75;
+}
+
+/* Pixel on/off switch. The knob sits at inline-start when off, inline-end when on. */
+.switch {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 92px;
+  height: 46px;
+  padding: 0 10px;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--white);
+  background: #120c33;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 3px var(--white);
+}
+
+.switch__knob {
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 8px;
+  width: 30px;
+  height: 30px;
+  background: var(--white);
+  box-shadow: inset 0 -4px 0 #b9c3e8;
+  transition: inset-inline-start 140ms steps(3, end);
+}
+
+.switch[aria-checked='true'] {
+  justify-content: flex-start;
+  background: #16a34a;
+}
+
+.switch[aria-checked='true'] .switch__knob {
+  inset-inline-start: calc(100% - 38px);
+}
+
+.switch:focus-visible {
+  outline: 3px dashed var(--sky-4);
+  outline-offset: 3px;
+}
