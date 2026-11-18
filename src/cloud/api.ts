@@ -21,6 +21,11 @@ export async function myRole(userId: string): Promise<Role | null> {
   return (data?.role as Role | undefined) ?? null
 }
 
+/* ---------- preferences (audio, motion) ---------- */
+
+export const getMyPreferences = () => call<Record<string, unknown>>('get_my_preferences')
+export const saveMyPreferences = (prefs: Record<string, unknown>) => call<void>('save_my_preferences', { p_prefs: prefs })
+
 /* ---------- student game ---------- */
 
 export const getCatalog = () => call<CatalogSubject[]>('get_catalog')
