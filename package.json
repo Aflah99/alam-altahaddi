@@ -13,19 +13,24 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "report:coverage": "node scripts/coverage-report.mjs"
+    "report:coverage": "node scripts/coverage-report.mjs",
+    "test:db": "bash scripts/db/reset-local.sh && vitest run --config vitest.db.config.ts",
+    "db:build-legacy": "node scripts/db/build-legacy-content-migration.mjs"
   },
   "dependencies": {
     "@fontsource/cairo": "^5.3.0",
+    "@supabase/supabase-js": "^2.119.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
     "oxlint": "^1.94.0",
+    "pg": "^8.23.1",
     "typescript": "~7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"

@@ -226,6 +226,7 @@ export function WorldScreen({ subject, level, character, outfit, settings, onSet
     <div
       ref={stageRef}
       className="world"
+      data-theme={level.id}
       tabIndex={-1}
       aria-label={`عالم ${subject.title}`}
       style={{ '--s': layout.scale, '--ground-bottom': `${layout.groundBottom}px`, '--controls-h': `${layout.controlsH}px` } as CSSProperties}

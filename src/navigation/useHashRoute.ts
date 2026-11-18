@@ -11,6 +11,11 @@ export type Route =
   | { name: 'map' }
   | { name: 'shop'; category?: string }
   | { name: 'locker' }
+  | { name: 'account' }
+  | { name: 'groups' }
+  | { name: 'import' }
+  | { name: 'parent'; path: string[] }
+  | { name: 'admin'; path: string[] }
   | { name: 'world'; subject: string }
   | { name: 'chapters'; subject: string }
   | { name: 'quiz'; subject: string; lesson: string; mission: number }
@@ -29,6 +34,15 @@ export function routeToHash(route: Route): string {
       return route.category ? `#/shop/${encodeURIComponent(route.category)}` : '#/shop'
     case 'locker':
       return '#/locker'
+    case 'account':
+      return '#/account'
+    case 'groups':
+      return '#/groups'
+    case 'import':
+      return '#/account/import'
+    case 'parent':
+    case 'admin':
+      return `#/${route.name}${route.path.map((p) => `/${encodeURIComponent(p)}`).join('')}`
     case 'world':
       return `#/world/${encodeURIComponent(route.subject)}`
     case 'chapters':
@@ -45,6 +59,9 @@ export function parseHash(hash: string): Route {
   if (parts[0] === 'map') return { name: 'map' }
   if (parts[0] === 'shop') return parts[1] ? { name: 'shop', category: parts[1] } : { name: 'shop' }
   if (parts[0] === 'locker') return { name: 'locker' }
+  if (parts[0] === 'groups') return { name: 'groups' }
+  if (parts[0] === 'account') return parts[1] === 'import' ? { name: 'import' } : { name: 'account' }
+  if (parts[0] === 'parent' || parts[0] === 'admin') return { name: parts[0], path: parts.slice(1) }
   if (parts[0] === 'quiz' && parts[1] && parts[2] && Number(parts[3]) >= 1) {
     return { name: 'quiz', subject: parts[1], lesson: parts[2], mission: Math.floor(Number(parts[3])) }
   }

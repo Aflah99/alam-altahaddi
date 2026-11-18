@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { CharacterSprite } from '../characters/CharacterSprite'
 import type { CharacterDef } from '../characters/roster'
 import { CornerButton } from '../components/CornerButton'
@@ -7,7 +7,7 @@ import { pixelRects } from '../components/pixelRects'
 import { Sky } from '../components/Sky'
 import { PlayArrow } from '../components/sprites'
 import { PORTAL, PORTAL_SWIRL, TREE } from '../lobby/lobbySprites'
-import { SUBJECTS, type SubjectId } from './config/subjects'
+import type { SubjectView } from './config/subjects'
 import { LOCK } from './worldSprites'
 import './AdventureMapScreen.css'
 
@@ -15,7 +15,13 @@ interface AdventureMapScreenProps {
   character: CharacterDef
   /** Equipped cosmetic ids. */
   outfit?: readonly string[]
-  onEnter: (subject: SubjectId) => void
+  /** Published subjects (cloud) or the bundled subject (guest). */
+  subjects: readonly SubjectView[]
+  /** Arabic message when the cloud catalogue could not be loaded. */
+  error?: string | null
+  loading?: boolean
+  onRetry?: () => void
+  onEnter: (subject: string) => void
   onBack: () => void
 }
 
@@ -23,9 +29,9 @@ interface AdventureMapScreenProps {
  * World selection. Each configured subject gets a portal on the island; the
  * locked islands in the sky are scenery only (no names, not interactive).
  */
-export function AdventureMapScreen({ character, outfit, onEnter, onBack }: AdventureMapScreenProps) {
-  const [selected, setSelected] = useState<SubjectId>(SUBJECTS[0].id)
-  const subject = SUBJECTS.find((s) => s.id === selected) ?? SUBJECTS[0]
+export function AdventureMapScreen({ character, outfit, subjects, error, loading, onRetry, onEnter, onBack }: AdventureMapScreenProps) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const subject = subjects.find((s) => s.id === selected) ?? subjects[0]
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -56,15 +62,17 @@ export function AdventureMapScreen({ character, outfit, onEnter, onBack }: Adven
               <PixelSprite rows={LOCK.rows} palette={LOCK.palette} className="amap__lock" />
             </div>
 
-            <div className="amap__island">
+            <div className="amap__island" data-count={Math.min(subjects.length, 3)}>
               <PixelSprite rows={TREE.rows} palette={TREE.palette} className="amap__tree" />
               <div className="amap__path" aria-hidden="true" />
-              {SUBJECTS.map((s) => (
+              {subjects.slice(0, 3).map((s, i) => (
                 <button
                   key={s.id}
                   type="button"
                   className="amap__portal"
-                  aria-pressed={s.id === selected}
+                  style={{ '--i': i } as CSSProperties}
+                  data-theme={s.theme}
+                  aria-pressed={s.id === subject?.id}
                   onClick={() => setSelected(s.id)}
                   onDoubleClick={() => onEnter(s.id)}
                 >
@@ -80,12 +88,36 @@ export function AdventureMapScreen({ character, outfit, onEnter, onBack }: Adven
           </div>
 
           <section className="amap__panel" aria-live="polite">
-            <h2 className="amap__subject">{subject.title}</h2>
-            <p className="amap__summary">{subject.summary}</p>
-            <button type="button" className="pixel-button amap__enter" onClick={() => onEnter(subject.id)}>
-              ادخل العالم
-            </button>
-            <p className="amap__note">مناطق أخرى مغلقة الآن، وستُفتح عند إضافة موادها.</p>
+            {subject ? (
+              <>
+                {subjects.length > 1 && (
+                  <div className="amap__chips" role="group" aria-label="المواد">
+                    {subjects.map((s) => (
+                      <button key={s.id} type="button" className="amap__chip" aria-pressed={s.id === subject.id} onClick={() => setSelected(s.id)}>
+                        {s.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <h2 className="amap__subject">{subject.title}</h2>
+                <p className="amap__summary">{subject.summary}</p>
+                <button type="button" className="pixel-button amap__enter" onClick={() => onEnter(subject.id)}>
+                  ادخل العالم
+                </button>
+                <p className="amap__note">مناطق أخرى مغلقة الآن، وستُفتح عند إضافة موادها.</p>
+              </>
+            ) : error ? (
+              <>
+                <p className="amap__summary">{error}</p>
+                {onRetry && (
+                  <button type="button" className="pixel-button amap__enter" onClick={onRetry}>
+                    إعادة المحاولة
+                  </button>
+                )}
+              </>
+            ) : (
+              <p className="amap__summary">{loading ? 'جارٍ تحميل المواد…' : 'لا توجد مواد منشورة بعد.'}</p>
+            )}
           </section>
         </div>
       </div>

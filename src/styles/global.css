@@ -105,3 +105,29 @@ html[data-motion='reduced'] *::after {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Loading / connection states shared by cloud screens. */
+.waiting {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.waiting__box {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: min(90vw, 420px);
+  padding: 16px 20px;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.7;
+  background: rgb(42 29 92 / 0.92);
+  box-shadow: inset 0 0 0 3px var(--white), 0 6px 0 var(--ink);
+}
+.waiting__box p {
+  margin: 0;
+}

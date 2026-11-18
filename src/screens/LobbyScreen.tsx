@@ -8,18 +8,18 @@ import { Overlay } from '../components/Overlay'
 import { PixelSprite } from '../components/PixelSprite'
 import { pixelRects } from '../components/pixelRects'
 import { Sky } from '../components/Sky'
-import { MiniSlime, PlayArrow } from '../components/sprites'
+import { FamilyIcon, MiniSlime, PlayArrow } from '../components/sprites'
 import { DEMO_NOTE, LOBBY_PLACES, type LobbyPlaceId } from '../content/lobby'
 import { LobbyPlace } from '../lobby/LobbyPlace'
 import { BUSH, PODIUM, PORTAL, PORTAL_SWIRL, STALL, TREE, WARDROBE, type SpriteDef } from '../lobby/lobbySprites'
 import { CoinAmount } from '../economy/ui/Coin'
 import { LevelBar } from '../economy/ui/LevelBar'
 import type { WalletView } from '../economy/wallet'
-import type { LocalPlayerProfile } from '../player/playerProfile'
+import type { PlayerIdentity } from '../player/playerProfile'
 import './LobbyScreen.css'
 
 interface LobbyScreenProps {
-  profile: LocalPlayerProfile
+  profile: PlayerIdentity
   view: WalletView
   outfit: readonly string[]
   onChangeCharacter: () => void
@@ -27,6 +27,12 @@ interface LobbyScreenProps {
   onOpenMap: () => void
   onOpenShop: () => void
   onOpenLocker: () => void
+  /** Group leaderboards (signed-in students); falls back to an info panel. */
+  onOpenBoard?: () => void
+  /** Account / sign-in screen. */
+  onAccount?: () => void
+  /** Where progress is stored (shown under the nickname). */
+  storageNote?: string
   onHome: () => void
   play: (name: SfxName) => void
   reducedMotion: boolean
@@ -40,7 +46,7 @@ const PLACE_SPRITES: Record<LobbyPlaceId, SpriteDef> = {
 }
 
 /** The player's home base: a small pixel village with entrances to future features. */
-export function LobbyScreen({ profile, view, outfit, onChangeCharacter, onOpenMap, onOpenShop, onOpenLocker, onHome, play, reducedMotion }: LobbyScreenProps) {
+export function LobbyScreen({ profile, view, outfit, onChangeCharacter, onOpenMap, onOpenShop, onOpenLocker, onOpenBoard, onAccount, storageNote = DEMO_NOTE, onHome, play, reducedMotion }: LobbyScreenProps) {
   const character = getCharacter(profile.characterId)
   const [open, setOpen] = useState<LobbyPlaceId | null>(null)
   const [cheering, setCheering] = useState(!reducedMotion)
@@ -75,6 +81,7 @@ export function LobbyScreen({ profile, view, outfit, onChangeCharacter, onOpenMa
     if (id === 'map') onOpenMap()
     else if (id === 'shop') onOpenShop()
     else if (id === 'closet') onOpenLocker()
+    else if (id === 'board' && onOpenBoard) onOpenBoard()
     else setOpen(id)
   }
 
@@ -96,10 +103,11 @@ export function LobbyScreen({ profile, view, outfit, onChangeCharacter, onOpenMa
               <LevelBar info={view.level} compact />
               <CoinAmount value={view.coins} className="hud-card__coins" />
             </div>
-            <span className="hud-card__demo">{DEMO_NOTE}</span>
+            <span className="hud-card__demo">{storageNote}</span>
           </div>
           <nav className="hud-actions" aria-label="خيارات اللاعب">
             <CornerButton icon={<MiniSlime />} label="تغيير الشخصية" onClick={onChangeCharacter} />
+            {onAccount && <CornerButton icon={<FamilyIcon />} label="الحساب" onClick={onAccount} />}
             <CornerButton icon={<PlayArrow className="icon-back" />} label="القائمة الرئيسية" onClick={onHome} />
           </nav>
         </header>

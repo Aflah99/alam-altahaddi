@@ -16,7 +16,31 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  database:
+    # Row Level Security, rewards and content tests against a throwaway PostgreSQL.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DB_URL: postgres://postgres:postgres@localhost:5432
+      TEST_DB_URL_FULL: postgres://postgres:postgres@localhost:5432/alam_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Database tests (RLS, rewards, content)
+        run: npm run test:db
+
   build:
+    needs: database
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -39,6 +63,10 @@ jobs:
 
       - name: Build
         run: npx vite build
+        env:
+          # PUBLIC values only (repository variables, not secrets). Empty = guest-only build.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v6

@@ -3,26 +3,27 @@ import { CornerButton } from '../components/CornerButton'
 import { PixelSprite } from '../components/PixelSprite'
 import { Sky } from '../components/Sky'
 import { PlayArrow } from '../components/sprites'
-import type { Lesson } from '../questions/types'
-import type { SubjectConfig } from '../world/config/subjects'
 import { BOOK } from '../world/worldSprites'
-import { missionId, planMissions } from './engine'
 import { ar, missionsLabel, questionsLabel } from './format'
-import type { LearningProgress } from './progress'
-import { useQuestionBank } from './useQuestionBank'
+import type { LessonView, UnitView } from './lessonTree'
 import './LessonSelectScreen.css'
 
 interface LessonSelectScreenProps {
-  subject: SubjectConfig
-  progress: LearningProgress
+  subjectTitle: string
+  /** null while loading. */
+  units: UnitView[] | null
+  error: boolean
+  lastLessonId: string | null
+  /** One honest sentence about where the questions come from and where progress is saved. */
+  sourceNote: string
+  onRetry?: () => void
   onStartMission: (lessonId: string, mission: number) => void
   onBackToWorld: () => void
 }
 
-/** «دروس ديني قيمي»: units and lessons in booklet order, each with its missions. */
-export function LessonSelectScreen({ subject, progress, onStartMission, onBackToWorld }: LessonSelectScreenProps) {
-  const { bank, error } = useQuestionBank(subject.bankId)
-  const [open, setOpen] = useState<string | null>(progress.lastLessonId)
+/** Units and lessons in order, each with its missions. Works for local and cloud content. */
+export function LessonSelectScreen({ subjectTitle, units, error, lastLessonId, sourceNote, onRetry, onStartMission, onBackToWorld }: LessonSelectScreenProps) {
+  const [open, setOpen] = useState<string | null>(lastLessonId)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -41,18 +42,26 @@ export function LessonSelectScreen({ subject, progress, onStartMission, onBackTo
       <div className="lessons__scroll">
         <header className="lessons__header">
           <CornerButton icon={<PlayArrow className="icon-back" />} label="العالم" onClick={onBackToWorld} />
-          <h1 className="lessons__title">دروس {subject.title}</h1>
+          <h1 className="lessons__title">دروس {subjectTitle}</h1>
         </header>
 
-        {!bank && !error && <p className="lessons__status">جارٍ تحميل الدروس…</p>}
-        {error && <p className="lessons__status">تعذّر تحميل الدروس. تحقّق من الاتصال ثم حاول مرة أخرى.</p>}
+        {!units && !error && <p className="lessons__status">جارٍ تحميل الدروس…</p>}
+        {error && (
+          <div className="lessons__status">
+            <p>تعذّر تحميل الدروس. تحقّق من الاتصال ثم حاول مرة أخرى.</p>
+            {onRetry && (
+              <button type="button" className="pixel-button" onClick={onRetry}>
+                إعادة المحاولة
+              </button>
+            )}
+          </div>
+        )}
 
-        {bank && (
+        {units && !error && (
           <main className="lessons__body">
-            <p className="lessons__source">
-              الأسئلة مأخوذة من كتيّب «زاد الطالب» للفصل الدراسي الأول. يُحفظ تقدّمك على هذا الجهاز فقط.
-            </p>
-            {bank.units.map((unit) => (
+            <p className="lessons__source">{sourceNote}</p>
+            {units.length === 0 && <p className="lessons__status">لا توجد دروس منشورة في هذه المادة بعد.</p>}
+            {units.map((unit) => (
               <section key={unit.id} className="lessons__unit" aria-labelledby={`unit-${unit.id}`}>
                 <h2 id={`unit-${unit.id}`} className="lessons__unit-title">
                   {unit.title}
@@ -62,9 +71,8 @@ export function LessonSelectScreen({ subject, progress, onStartMission, onBackTo
                     <LessonCard
                       key={lesson.id}
                       lesson={lesson}
-                      progress={progress}
                       expanded={open === lesson.id}
-                      isLast={progress.lastLessonId === lesson.id}
+                      isLast={lastLessonId === lesson.id}
                       onToggle={() => setOpen((o) => (o === lesson.id ? null : lesson.id))}
                       onStart={(n) => onStartMission(lesson.id, n)}
                     />
@@ -81,21 +89,19 @@ export function LessonSelectScreen({ subject, progress, onStartMission, onBackTo
 
 function LessonCard({
   lesson,
-  progress,
   expanded,
   isLast,
   onToggle,
   onStart,
 }: {
-  lesson: Lesson
-  progress: LearningProgress
+  lesson: LessonView
   expanded: boolean
   isLast: boolean
   onToggle: () => void
   onStart: (mission: number) => void
 }) {
-  const missions = planMissions(lesson)
-  const done = missions.filter((_, i) => progress.missions[missionId(lesson.id, i + 1)]).length
+  const missions = lesson.missions
+  const done = missions.filter((m) => m.best).length
   const playable = missions.length > 0
   const panelId = `lesson-${lesson.id}`
 
@@ -115,9 +121,7 @@ function LessonCard({
             الدرس {ar(lesson.number)}: {lesson.title}
           </span>
           <span className="lesson__meta">
-            {playable
-              ? `${questionsLabel(lesson.questions.length)}، ${missionsLabel(missions.length)}`
-              : 'لا توجد أسئلة متاحة بعد'}
+            {playable ? `${questionsLabel(lesson.questionCount)}، ${missionsLabel(missions.length)}` : 'لا توجد أسئلة متاحة بعد'}
           </span>
         </span>
         {playable && (
@@ -130,19 +134,13 @@ function LessonCard({
 
       {expanded && playable && (
         <div id={panelId} className="lesson__missions">
-          {missions.map((qs, i) => {
-            const n = i + 1
-            const rec = progress.missions[missionId(lesson.id, n)]
-            return (
-              <button key={n} type="button" className="mission-btn" onClick={() => onStart(n)}>
-                <span className="mission-btn__name">المهمة {ar(n)}</span>
-                <span className="mission-btn__meta">{questionsLabel(qs.length)}</span>
-                <span className="mission-btn__state">
-                  {rec ? `✓ أفضل نتيجة: ${ar(rec.bestFirstTry)}/${ar(rec.total)}` : 'ابدأ'}
-                </span>
-              </button>
-            )
-          })}
+          {missions.map((m) => (
+            <button key={m.number} type="button" className="mission-btn" onClick={() => onStart(m.number)}>
+              <span className="mission-btn__name">المهمة {ar(m.number)}</span>
+              <span className="mission-btn__meta">{questionsLabel(m.size)}</span>
+              <span className="mission-btn__state">{m.best ? `✓ أفضل نتيجة: ${m.best}` : 'ابدأ'}</span>
+            </button>
+          ))}
         </div>
       )}
     </li>

@@ -29,6 +29,8 @@ export interface Question {
   correctOptionId: OptionId
   hint: string
   explanation: string
+  /** Source shown under the explanation, e.g. «كتيّب ديني قيمي» (defaults to that). */
+  sourceLabel?: string
   difficulty: Difficulty
   reviewStatus: ReviewStatus
 }

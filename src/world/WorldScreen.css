@@ -367,3 +367,42 @@
   background: transparent;
   box-shadow: inset 0 0 0 2px var(--ink-light);
 }
+
+/* ---------- Theme presets (chosen per subject by an administrator) ---------- */
+.world[data-theme='forest'] .world__hills,
+.world[data-theme='forest'] .wground,
+.world[data-theme='forest'] .wdecor {
+  filter: saturate(1.15) brightness(0.82) hue-rotate(-12deg);
+}
+.world[data-theme='forest'] .sky {
+  filter: hue-rotate(40deg) saturate(0.7) brightness(0.92);
+}
+.world[data-theme='desert'] .world__hills,
+.world[data-theme='desert'] .wground,
+.world[data-theme='desert'] .wblock,
+.world[data-theme='desert'] .wplatform {
+  filter: hue-rotate(-75deg) saturate(1.25) brightness(1.08);
+}
+.world[data-theme='desert'] .sky {
+  filter: hue-rotate(-160deg) saturate(0.55) brightness(1.15);
+}
+.world[data-theme='castle'] .world__hills,
+.world[data-theme='castle'] .wground,
+.world[data-theme='castle'] .wblock,
+.world[data-theme='castle'] .wplatform,
+.world[data-theme='castle'] .wdecor {
+  filter: grayscale(0.75) brightness(0.9) sepia(0.15);
+}
+.world[data-theme='castle'] .sky {
+  filter: hue-rotate(50deg) saturate(0.8) brightness(0.8);
+}
+.world[data-theme='future'] .world__hills,
+.world[data-theme='future'] .wground,
+.world[data-theme='future'] .wblock,
+.world[data-theme='future'] .wplatform,
+.world[data-theme='future'] .wdecor {
+  filter: hue-rotate(165deg) saturate(1.4);
+}
+.world[data-theme='future'] .sky {
+  filter: hue-rotate(70deg) saturate(1.2) brightness(0.7);
+}

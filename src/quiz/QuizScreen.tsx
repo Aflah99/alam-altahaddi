@@ -10,8 +10,12 @@ import { findLesson } from '../questions/normalize'
 import type { Lesson, OptionId, Question } from '../questions/types'
 import type { SubjectConfig } from '../world/config/subjects'
 import { PENNANT } from '../world/worldSprites'
+import { arabicError } from '../cloud/client'
+import type { AnswerResult } from '../cloud/types'
+import { rewardFromServer, type QuizDriver } from './driver'
 import {
   confirmAnswer,
+  confirmWithVerdict,
   createMission,
   current,
   nextQuestion,
@@ -23,7 +27,7 @@ import {
   type MissionState,
   type MissionSummary,
 } from './engine'
-import { OPTION_LETTERS, ar } from './format'
+import { OPTION_LETTERS, ar, sourceLine } from './format'
 import { MissionResults } from './MissionResults'
 import type { MissionReward } from '../economy/wallet'
 import { MistakeReview } from './MistakeReview'
@@ -53,7 +57,7 @@ type View = 'quiz' | 'results' | 'review'
 
 /** ساحة التحدّي — one mission of up to ten questions from a lesson. */
 export function QuizScreen(props: QuizScreenProps) {
-  const { bank, error } = useQuestionBank(props.subject.bankId)
+  const { bank, error } = useQuestionBank(props.subject.bankId ?? '')
   const lesson = bank ? findLesson(bank, props.lessonId) : undefined
   const missionCount = lesson ? planMissions(lesson).length : 0
 
@@ -81,8 +85,10 @@ export function QuizScreen(props: QuizScreenProps) {
   return <QuizArena key={`${lesson.id}#${props.missionNumber}`} {...props} lesson={lesson} missionCount={missionCount} />
 }
 
-function QuizArena({
+export function QuizArena({
   lesson,
+  driver,
+  onRestart,
   missionNumber,
   missionCount,
   character,
@@ -95,10 +101,14 @@ function QuizArena({
   onShop,
   onLessons,
   onWorld,
-}: QuizScreenProps & { lesson: Lesson; missionCount: number }) {
+}: Omit<QuizScreenProps, 'subject' | 'lessonId'> & { lesson: Lesson; missionCount: number; driver?: QuizDriver; onRestart?: () => void }) {
   const [reward, setReward] = useState<MissionReward | null>(null)
   const [legacy, setLegacy] = useState(false)
-  const [mission, setMission] = useState<MissionState>(() => createMission(lesson, missionNumber, Date.now()))
+  // Cloud: `lesson` holds exactly this session's questions, so it is "mission 1" of itself.
+  const [mission, setMission] = useState<MissionState>(() => createMission(lesson, driver ? 1 : missionNumber, Date.now()))
+  const [revealed, setRevealed] = useState<Record<string, Partial<Question>>>({})
+  const [busy, setBusy] = useState(false)
+  const [netError, setNetError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<Feedback>('none')
   const [view, setView] = useState<View>('quiz')
   const [summary, setSummary] = useState<MissionSummary | null>(null)
@@ -107,7 +117,20 @@ function QuizArena({
   const reactionTimer = useRef<number | undefined>(undefined)
   const nextRef = useRef<HTMLButtonElement>(null)
 
-  const byId = useMemo(() => new Map(lesson.questions.map((q) => [q.id, q])), [lesson])
+  const byId = useMemo(
+    () => new Map(lesson.questions.map((q) => [q.id, revealed[q.id] ? { ...q, ...revealed[q.id] } : q])),
+    [lesson, revealed],
+  )
+  const reveal = (id: string, r: AnswerResult) =>
+    setRevealed((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        ...(r.correct_option ? { correctOptionId: r.correct_option } : {}),
+        ...(r.explanation !== null ? { explanation: r.explanation } : {}),
+        ...(r.hint ? { hint: r.hint } : {}),
+      },
+    }))
   const state = current(mission)
   const question: Question | undefined = state ? byId.get(state.questionId) : undefined
   const isLast = mission.index === mission.questions.length - 1
@@ -130,9 +153,27 @@ function QuizArena({
     play('move')
   }
 
-  const confirm = () => {
-    if (!question || view !== 'quiz' || confirmExit) return
-    const r = confirmAnswer(mission, question)
+  const confirm = async () => {
+    if (!question || view !== 'quiz' || confirmExit || busy) return
+    let r: { state: MissionState; feedback: Feedback }
+    if (driver) {
+      const choice = state?.selected
+      if (!choice) return
+      setBusy(true)
+      setNetError(null)
+      try {
+        const res = await driver.submit(question.id, choice)
+        reveal(question.id, res)
+        r = confirmWithVerdict(mission, res.feedback === 'correct')
+      } catch (e) {
+        setNetError(arabicError(e))
+        return
+      } finally {
+        setBusy(false)
+      }
+    } else {
+      r = confirmAnswer(mission, question)
+    }
     if (r.feedback === 'none') return
     setMission(r.state)
     setFeedback(r.feedback)
@@ -145,10 +186,36 @@ function QuizArena({
     }
   }
 
-  const advance = () => {
-    if (view !== 'quiz' || confirmExit) return
+  const advance = async () => {
+    if (view !== 'quiz' || confirmExit || busy) return
     const m = nextQuestion(mission, mission.index)
     if (m === mission) return
+    if (m.finished && driver) {
+      setBusy(true)
+      setNetError(null)
+      try {
+        const s = await driver.complete()
+        setMission(m)
+        setFeedback('none')
+        setSummary({
+          total: s.total,
+          firstTry: s.first_try,
+          assisted: s.assisted,
+          missed: s.missed,
+          hintsUsed: s.hints_used,
+          firstTryAccuracy: s.first_try_accuracy,
+          review: m.questions.filter((q) => q.result !== 'first').map((q) => q.questionId),
+        })
+        setReward(rewardFromServer(s))
+        setView('results')
+        play('confirm')
+      } catch (e) {
+        setNetError(arabicError(e))
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
     setMission(m)
     setFeedback('none')
     if (m.finished) {
@@ -164,12 +231,29 @@ function QuizArena({
     }
   }
 
-  const hint = () => {
-    if (view !== 'quiz') return
+  const hint = async () => {
+    if (view !== 'quiz' || busy || !state) return
+    if (driver) {
+      setBusy(true)
+      setNetError(null)
+      try {
+        const h = await driver.hint(state.questionId)
+        setRevealed((prev) => ({ ...prev, [state.questionId]: { ...prev[state.questionId], hint: h } }))
+      } catch (e) {
+        setNetError(arabicError(e))
+        return
+      } finally {
+        setBusy(false)
+      }
+    }
     setMission((m) => requestHint(m))
   }
 
   const retry = () => {
+    if (onRestart) {
+      onRestart()
+      return
+    }
     setMission(createMission(lesson, missionNumber, Date.now()))
     setFeedback('none')
     setSummary(null)
@@ -213,8 +297,8 @@ function QuizArena({
         choose(state.order[n])
       } else if (e.key === 'Enter' && !onButton) {
         e.preventDefault()
-        if (final) advance()
-        else confirm()
+        if (final) void advance()
+        else void confirm()
       }
     }
     window.addEventListener('keydown', onKey)
@@ -282,7 +366,7 @@ function QuizArena({
                         type="button"
                         className={`qopt${status ? ` qopt--${status}` : ''}`}
                         onClick={() => choose(id)}
-                        disabled={final || tried}
+                        disabled={final || tried || busy}
                         aria-pressed={state.selected === id && !final}
                       >
                         <span className="qopt__letter" aria-hidden="true">
@@ -321,7 +405,7 @@ function QuizArena({
                       <strong>شرح الإجابة: </strong>
                       {question.explanation}
                     </p>
-                    <p className="qfb__source">المصدر: كتيّب ديني قيمي، صفحة {ar(question.sourcePdfPage)}</p>
+                    <p className="qfb__source">{sourceLine(question)}</p>
                   </div>
                 )}
               </div>
@@ -353,8 +437,13 @@ function QuizArena({
 
         {view === 'quiz' && state && (
           <footer className="quiz__actions">
+            {netError && (
+              <p className="quiz__neterror" role="alert">
+                {netError}
+              </p>
+            )}
             {final ? (
-              <button ref={nextRef} type="button" className="pixel-button quiz__primary" onClick={advance}>
+              <button ref={nextRef} type="button" className="pixel-button quiz__primary" onClick={() => void advance()} disabled={busy}>
                 {isLast ? 'إنهاء المهمة' : 'السؤال التالي'}
               </button>
             ) : (
@@ -362,12 +451,12 @@ function QuizArena({
                 <button
                   type="button"
                   className="quiz__hint-btn"
-                  onClick={hint}
-                  disabled={state.hintUsed || state.phase !== 'answering'}
+                  onClick={() => void hint()}
+                  disabled={state.hintUsed || state.phase !== 'answering' || busy}
                 >
                   تلميح
                 </button>
-                <button type="button" className="pixel-button quiz__primary" onClick={confirm} disabled={!state.selected}>
+                <button type="button" className="pixel-button quiz__primary" onClick={() => void confirm()} disabled={!state.selected || busy}>
                   {state.phase === 'retry' ? 'حاول مرة أخرى' : 'تأكيد الإجابة'}
                 </button>
               </>

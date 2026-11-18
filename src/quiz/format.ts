@@ -19,3 +19,9 @@ export function missionsLabel(n: number): string {
 }
 
 export const OPTION_LETTERS = ['أ', 'ب', 'ج', 'د'] as const
+
+/** «المصدر: كتيّب ديني قيمي، صفحة ٢٦» (page omitted when unknown). */
+export function sourceLine(q: { sourceLabel?: string; sourcePdfPage: number }): string {
+  const label = q.sourceLabel || 'كتيّب ديني قيمي'
+  return q.sourcePdfPage > 0 ? `المصدر: ${label}، صفحة ${ar(q.sourcePdfPage)}` : `المصدر: ${label}`
+}

@@ -6,12 +6,12 @@ import { CornerButton } from '../components/CornerButton'
 import { Sky } from '../components/Sky'
 import { PlayArrow } from '../components/sprites'
 import { NicknameField } from '../player/NicknameField'
-import type { LocalPlayerProfile } from '../player/playerProfile'
+import type { PlayerIdentity } from '../player/playerProfile'
 import { validateNickname } from '../player/playerProfile'
 import './CharacterSelectScreen.css'
 
 interface CharacterSelectScreenProps {
-  profile: LocalPlayerProfile | null
+  profile: PlayerIdentity | null
   onConfirm: (characterId: CharacterId, nickname: string) => void
   onBack: () => void
   play: (name: SfxName) => void

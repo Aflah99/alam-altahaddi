@@ -71,4 +71,22 @@ const MEADOW: LevelConfig = {
   ],
 }
 
-export const LEVELS: Readonly<Record<string, LevelConfig>> = { meadow: MEADOW }
+/** Theme variants reuse the meadow's collision layout (tested, gentle) with different scenery. */
+function variant(id: string, swap: Partial<Record<DecorItem['kind'], DecorItem['kind'] | null>>): LevelConfig {
+  return {
+    ...MEADOW,
+    id,
+    decor: MEADOW.decor.flatMap((d) => {
+      const to = d.kind in swap ? swap[d.kind] : d.kind
+      return to ? [{ ...d, kind: to }] : []
+    }),
+  }
+}
+
+export const LEVELS: Readonly<Record<string, LevelConfig>> = {
+  meadow: MEADOW,
+  forest: variant('forest', { flower: 'bush', flowerBlue: 'tree', rock: 'tree' }),
+  desert: variant('desert', { tree: 'rock', bush: 'rock', flower: null, flowerBlue: null }),
+  castle: variant('castle', { tree: 'rock', flower: null, flowerBlue: 'flower' }),
+  future: variant('future', { tree: 'rock', bush: null, flower: 'flowerBlue' }),
+}
