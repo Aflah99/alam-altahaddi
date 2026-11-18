@@ -53,7 +53,7 @@ create or replace function storage.foldername(name text) returns text[] language
   select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1]
 $$;
 
--- Supabase's default privileges: API roles get table access, RLS decides rows.
-alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+-- Current Supabase defaults (new projects): functions are executable by the API roles, but
+-- tables and sequences are NOT granted automatically. Migrations grant table access explicitly
+-- (see 20261118000800_api_grants.sql), and RLS decides rows.
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
