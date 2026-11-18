@@ -20,6 +20,9 @@ export interface LocalPlayerProfile {
   updatedAt: string
 }
 
+/** What the game screens need to know about the player (guest or signed-in student). */
+export type PlayerIdentity = Pick<LocalPlayerProfile, 'id' | 'characterId' | 'nickname'>
+
 const STORAGE_KEY = 'alam-altahaddi:player:v1'
 
 export const NICKNAME_MIN = 2

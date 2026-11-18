@@ -9,7 +9,7 @@ import { PixelSprite } from '../components/PixelSprite'
 import { PlayArrow } from '../components/sprites'
 import { CATALOG, CATEGORIES, type CatalogItem, type ShopCategory } from '../economy/catalog'
 import { Coin, CoinAmount } from '../economy/ui/Coin'
-import type { PurchaseResult, WalletView } from '../economy/wallet'
+import type { WalletView } from '../economy/wallet'
 import { STALL } from '../lobby/lobbySprites'
 import { ar } from '../quiz/format'
 import { CategoryTabs } from './CategoryTabs'
@@ -21,12 +21,15 @@ interface ShopScreenProps {
   view: WalletView
   outfit: readonly string[]
   initialCategory?: ShopCategory
-  onPurchase: (itemId: string) => PurchaseResult
+  /** Local wallet (sync) or server purchase (async). */
+  onPurchase: (itemId: string) => ShopPurchaseResult | Promise<ShopPurchaseResult>
   onLocker: () => void
   onBack: () => void
   play: (name: SfxName) => void
   reducedMotion: boolean
 }
+
+export type ShopPurchaseResult = { ok: true } | { ok: false; reason: 'unknown-item' | 'owned' | 'insufficient'; missing?: number }
 
 /** المتجر — a retro item shop for cosmetic items, paid with coins earned from learning. */
 export function ShopScreen({ character, view, outfit, initialCategory = 'hat', onPurchase, onLocker, onBack, play, reducedMotion }: ShopScreenProps) {
@@ -58,8 +61,19 @@ export function ShopScreen({ character, view, outfit, initialCategory = 'hat', o
     setNotice(null)
   }
 
-  const doPurchase = (item: CatalogItem) => {
-    const r = onPurchase(item.id)
+  const [buying, setBuying] = useState(false)
+  const doPurchase = async (item: CatalogItem) => {
+    let r: ShopPurchaseResult
+    setBuying(true)
+    try {
+      r = await onPurchase(item.id)
+    } catch {
+      play('back')
+      setNotice('تعذّر إتمام الشراء. تحقّق من الاتصال ثم حاول مرة أخرى.')
+      return
+    } finally {
+      setBuying(false)
+    }
     if (r.ok) {
       play('confirm')
       setBought(item)
@@ -124,7 +138,7 @@ export function ShopScreen({ character, view, outfit, initialCategory = 'hat', o
                     <button
                       type="button"
                       className="pixel-button shopx__buy-btn"
-                      disabled={missing > 0}
+                      disabled={missing > 0 || buying}
                       onClick={() => {
                         play('move')
                         setConfirm(selected)
@@ -200,7 +214,7 @@ export function ShopScreen({ character, view, outfit, initialCategory = 'hat', o
             onClick={() => {
               const item = confirm
               setConfirm(null)
-              doPurchase(item)
+              void doPurchase(item)
             }}
           >
             تأكيد الشراء

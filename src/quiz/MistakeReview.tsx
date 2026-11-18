@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Question } from '../questions/types'
 import type { MissionState } from './engine'
+import { sourceLine } from './format'
 import { ar } from './format'
 
 interface MistakeReviewProps {
@@ -45,7 +46,7 @@ export function MistakeReview({ mission, byId, onBack }: MistakeReviewProps) {
                 <strong>شرح الإجابة: </strong>
                 {q.explanation}
               </p>
-              <p className="review__source">المصدر: كتيّب ديني قيمي، صفحة {ar(q.sourcePdfPage)}</p>
+              <p className="review__source">{sourceLine(q)}</p>
             </li>
           )
         })}

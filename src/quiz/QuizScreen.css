@@ -302,6 +302,7 @@
 
 /* ---------- Action bar ---------- */
 .quiz__actions {
+  flex-wrap: wrap;
   grid-area: actions;
   display: flex;
   justify-content: center;
@@ -671,4 +672,13 @@
     min-height: 48px;
     padding: 6px 10px;
   }
+}
+.quiz__neterror {
+  flex-basis: 100%;
+  margin: 0 0 6px;
+  padding: 6px 10px;
+  font-weight: 700;
+  color: var(--ink);
+  background: #ffd9a8;
+  text-align: center;
 }

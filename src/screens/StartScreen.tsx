@@ -21,6 +21,8 @@ interface StartScreenProps {
   onSettingsChange: (patch: Partial<Settings>) => void
   /** «مغامرة فردية» leads to character selection. */
   onStartSolo: () => void
+  /** Opens the parent area (cloud). Without it, «ولي الأمر» shows the information panel. */
+  onParent?: () => void
 }
 
 const OVERLAY_ICONS: Record<OverlayId, ReactNode> = {
@@ -38,7 +40,7 @@ const OVERLAY_ICONS: Record<OverlayId, ReactNode> = {
 
 const MASCOT = getCharacter('green-slime')
 
-export function StartScreen({ settings, onSettingsChange, onStartSolo }: StartScreenProps) {
+export function StartScreen({ settings, onSettingsChange, onStartSolo, onParent }: StartScreenProps) {
   const [selected, setSelected] = useState(0)
   const [overlay, setOverlay] = useState<OverlayId | null>(null)
 
@@ -91,7 +93,7 @@ export function StartScreen({ settings, onSettingsChange, onStartSolo }: StartSc
 
       <div className="start__ui" inert={overlay !== null}>
         <header className="start__corners">
-          <CornerButton icon={<FamilyIcon />} label="ولي الأمر" onClick={() => open('parent')} />
+          <CornerButton icon={<FamilyIcon />} label="ولي الأمر" onClick={() => (onParent ? onParent() : open('parent'))} />
           <CornerButton icon={<GearIcon />} label="الإعدادات" onClick={() => open('settings')} />
         </header>
 

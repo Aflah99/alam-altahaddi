@@ -140,12 +140,21 @@ export function requestHint(m: MissionState): MissionState {
 /** Confirm the selected option. Returns the new state and the feedback to show. */
 export function confirmAnswer(m: MissionState, question: Question): { state: MissionState; feedback: Feedback } {
   const q = current(m)
-  if (!q || q.phase === 'final' || q.selected === null || q.questionId !== question.id) {
+  if (!q || q.questionId !== question.id) return { state: m, feedback: 'none' }
+  return confirmWithVerdict(m, q.selected === question.correctOptionId)
+}
+
+/**
+ * Same transition as confirmAnswer, but with correctness decided elsewhere (by the
+ * server in cloud mode, where the client never holds the answer key).
+ */
+export function confirmWithVerdict(m: MissionState, correct: boolean): { state: MissionState; feedback: Feedback } {
+  const q = current(m)
+  if (!q || q.phase === 'final' || q.selected === null) {
     return { state: m, feedback: 'none' }
   }
   const choice = q.selected
   const attempts = [...q.attempts, choice]
-  const correct = choice === question.correctOptionId
 
   if (correct) {
     const result: QuestionResult = attempts.length === 1 && !q.hintUsed ? 'first' : 'assisted'
