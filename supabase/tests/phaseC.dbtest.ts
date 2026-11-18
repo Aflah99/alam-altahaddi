@@ -208,3 +208,16 @@ describe('deletion and account data', () => {
     }
   })
 })
+
+describe('hardening (security advisors)', () => {
+  it('signed-out visitors cannot call role helpers; nobody can call trigger functions via the API', async () => {
+    for (const fn of ['is_admin', 'is_student', 'my_role', 'require_admin']) {
+      await expect(rpc(null, fn)).rejects.toThrow(/permission denied/)
+    }
+    const kid = await createStudent(await createParent())
+    await expect(rpc(kid, 'handle_new_user')).rejects.toThrow(/permission denied/)
+    await expect(rpc(kid, 'audit_row_change')).rejects.toThrow(/permission denied/)
+    // Signed-in helpers still work (policies depend on them).
+    expect(await rpc(kid, 'is_student')).toBe(true)
+  })
+})
