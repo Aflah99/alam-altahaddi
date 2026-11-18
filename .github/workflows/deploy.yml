@@ -64,9 +64,11 @@ jobs:
       - name: Build
         run: npx vite build
         env:
-          # PUBLIC values only (repository variables, not secrets). Empty = guest-only build.
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # PUBLIC values only (they end up in the browser bundle by design). Repository variables
+          # override them; the fallbacks are the production project's URL and publishable key.
+          # Never put a secret/service-role key here.
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://huaaocsahissfbpltcyn.supabase.co' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_nlRVwef5J71wnRBPBP-hXA_EKndoIKL' }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v6
