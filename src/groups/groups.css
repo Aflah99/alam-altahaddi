@@ -1,0 +1,199 @@
+/* لوحة الأبطال: private group leaderboards in the retro pixel style. */
+.groupsx {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: var(--white);
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.04) 0 4px, transparent 4px 24px),
+    linear-gradient(180deg, #1d1650 0%, #2a1d5c 55%, #3b2d7a 100%);
+}
+.groupsx__scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    env(safe-area-inset-top)
+    max(12px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+.groupsx__scroll > * {
+  max-width: 640px;
+  margin-inline: auto;
+}
+.groupsx__header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding-top: 10px;
+}
+.groupsx__title {
+  margin: 0;
+  text-align: center;
+  font-weight: 900;
+  font-size: clamp(1.5rem, min(6.5vw, 5dvh), 2.3rem);
+  color: #ffd84a;
+  text-shadow: var(--pixel-outline), 0 5px 0 var(--ink);
+}
+.groupsx__panel {
+  margin-top: 14px;
+  padding: 14px;
+  background: #3b2d7a;
+  border: 4px solid var(--ink);
+  box-shadow: inset 0 0 0 3px #5b4aa6, 0 6px 0 var(--ink);
+  line-height: 1.7;
+}
+.groupsx__panel p {
+  margin: 0;
+}
+.groupsx__join label {
+  display: block;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.groupsx__join-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.groupsx__code {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 10px 12px;
+  font: 800 1.25rem/1.2 ui-monospace, 'Courier New', monospace;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: #fffbe6;
+  border: 4px solid var(--ink);
+  border-radius: 0;
+}
+.groupsx__ok,
+.groupsx__err {
+  margin-top: 10px !important;
+  padding: 8px 10px;
+  border: 3px solid var(--ink);
+  font-weight: 700;
+}
+.groupsx__ok {
+  background: #2f9e44;
+}
+.groupsx__err {
+  background: #c92a2a;
+}
+.groupsx__pending {
+  font-weight: 700;
+}
+.groupsx__muted {
+  opacity: 0.8;
+  text-align: center;
+  margin: 14px 0;
+}
+.groupsx__tabs,
+.groupsx__periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.groupsx__periods {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+.groupsx__tab {
+  font: 800 1rem var(--font-arabic);
+  padding: 6px 14px;
+  color: var(--white);
+  background: #5b4aa6;
+  border: 3px solid var(--ink);
+  border-radius: 0;
+  box-shadow: 0 4px 0 var(--ink);
+  cursor: pointer;
+}
+.groupsx__tab[aria-selected='true'],
+.groupsx__tab[aria-pressed='true'] {
+  color: var(--ink);
+  background: #ffd84a;
+}
+.groupsx__rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.groupsx__row {
+  display: grid;
+  grid-template-columns: 2.4rem 3.4rem 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #2a1d5c;
+  border: 3px solid var(--ink);
+}
+.groupsx__row--me {
+  background: #4c3a9a;
+  box-shadow: inset 0 0 0 3px #ffd84a;
+}
+.groupsx__rank {
+  display: grid;
+  place-items: center;
+  height: 2.2rem;
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: var(--ink);
+  background: #e9ecef;
+  border: 3px solid var(--ink);
+}
+.groupsx__rank--1 {
+  background: #ffd84a;
+}
+.groupsx__rank--2 {
+  background: #ced4da;
+}
+.groupsx__rank--3 {
+  background: #e8a35c;
+}
+.groupsx__avatar {
+  --cell: 3px;
+  display: grid;
+  place-items: center;
+  height: 3.4rem;
+  overflow: hidden;
+}
+.groupsx__nick {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+.groupsx__nick small,
+.groupsx__xp small {
+  font-weight: 600;
+  opacity: 0.85;
+}
+.groupsx__xp {
+  font-weight: 900;
+  color: #ffd84a;
+  white-space: nowrap;
+}
+.groupsx__leave {
+  margin-top: 14px;
+  font: 700 0.95rem var(--font-arabic);
+  color: #ffc9c9;
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.groupsx__how summary {
+  font-weight: 800;
+  cursor: pointer;
+}
+.groupsx__how ul {
+  margin: 8px 0 0;
+  padding-inline-start: 20px;
+}

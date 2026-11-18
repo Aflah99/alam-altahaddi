@@ -54,3 +54,24 @@ export async function invokeFunction<T>(name: string, body: Record<string, unkno
   }
   return data as T
 }
+
+/* ---------- groups and leaderboards ---------- */
+
+export interface LeaderRow {
+  rank: number
+  nickname: string
+  character_id: string
+  outfit: string[]
+  xp: number
+  is_me: boolean
+}
+export interface Leaderboard {
+  group: { id: string; name: string; active: boolean }
+  period: 'week' | 'all'
+  since: string | null
+  rows: LeaderRow[]
+}
+export const myGroups = () => call<{ id: string; name: string; status: 'pending' | 'active'; active: boolean }[]>('my_groups')
+export const joinGroupWithCode = (code: string) => call<{ group_id?: string; status: 'pending' | 'active' | 'rejected' | 'invalid' }>('join_group_with_code', { p_code: code })
+export const leaveGroup = (groupId: string) => call<void>('leave_group', { p_group: groupId })
+export const groupLeaderboard = (groupId: string, period: 'week' | 'all') => call<Leaderboard>('group_leaderboard', { p_group: groupId, p_period: period })

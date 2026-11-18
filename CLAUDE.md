@@ -35,5 +35,11 @@ Do not start a new numbered task until the owner assigns or approves it.
 
 - All UI text is Arabic, right-to-left. Readable for Grade 8 students.
 - Retro 8/16-bit pixel-art style; original assets only.
-- No secrets, API keys, textbooks or student data in the repo. Backend will be Supabase
-  with server-side functions; only public `VITE_` values may reach the browser.
+- No secrets, API keys, textbooks or student data in the repo. Backend is Supabase
+  (`supabase/`, docs in `docs/backend/`); only `VITE_SUPABASE_URL` and
+  `VITE_SUPABASE_PUBLISHABLE_KEY` may reach the browser. Secret keys and the Anthropic key
+  live only in Edge Function secrets.
+- Run `npm run test:db` too when touching `supabase/` (needs local PostgreSQL 16).
+- Don't rewrite the academic questions; keep the 4 academic review flags open until a
+  teacher resolves them.
+- Never start paid AI generation without the owner's explicit spending authorisation.

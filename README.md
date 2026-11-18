@@ -4,7 +4,7 @@ An Arabic (RTL) educational pixel-art adventure game for Grade 8 students, built
 
 **Live site:** https://aflah99.github.io/alam-altahaddi/
 
-> Status: **Task 06** — start menu, character selection, lobby, adventure map, a playable side-scrolling world, textbook-based quiz missions (ساحة التحدّي) for «ديني قيمي», and an XP/coin reward system with a pixel-art shop (المتجر) and locker (الخزانة).
+> Status: **Tasks 07–09 (code complete, backend not yet connected)** — on top of the Task 06 game (world, quiz missions, XP/coins, shop and locker), the repository now contains a Supabase backend: student/parent/admin accounts, server-validated quizzes and rewards, an admin content system with Claude-assisted question drafting, parent dashboards and private group leaderboards. The live site stays in **guest mode** until the owner connects a Supabase project (see [owner setup](docs/backend/OWNER-SETUP.md)).
 
 ## Tech stack
 
@@ -29,7 +29,9 @@ npm run dev        # http://localhost:5173/alam-altahaddi/
 | `npm run build`     | Type-check and build into `dist/`     |
 | `npm run preview`   | Serve the production build locally    |
 | `npm run lint`      | Lint with oxlint                      |
-| `npm test`          | Unit tests (Vitest): physics, camera, routes, quiz engine, progress, rewards/shop/locker, **question-bank validation** |
+| `npm test`          | Unit tests (Vitest): physics, camera, routes, quiz engine, progress, rewards/shop/locker, **question-bank validation**, function helpers, parent insights |
+| `npm run test:db`   | Database and security tests: all migrations + RLS on a local PostgreSQL (see [DATABASE.md](docs/backend/DATABASE.md)) |
+| `npm run db:build-legacy` | Regenerate the migration that imports the 600 legacy questions |
 | `npm run report:coverage` | Regenerate the question-bank coverage report in `docs/question-bank/` |
 
 ## Project structure
@@ -149,9 +151,51 @@ The bank is a static file bundled at build time. There are no runtime AI or API 
 
 **Adding a book:** create `src/questions/data/<bank-id>/` with one JSON file per lesson (same shape as the existing files; option 1 is the correct answer), add a 5-line loader in `src/questions/banks/`, register it in `src/quiz/useQuestionBank.ts`, and set `bankId` on the subject in `src/world/config/subjects.ts`. `npm test` validates the new bank automatically. No engine changes are needed.
 
+## Backend (Tasks 07–09)
+
+Documentation: [architecture](docs/backend/ARCHITECTURE.md) · [database](docs/backend/DATABASE.md) · [privacy design](docs/backend/PRIVACY.md) · [owner setup](docs/backend/OWNER-SETUP.md).
+
+| Area | Where |
+| --- | --- |
+| Migrations (schema, RLS, functions, the 600 questions) | `supabase/migrations/` |
+| Edge Functions: `parent-children` (child accounts), `ai-worker` (textbook extraction and question drafting) | `supabase/functions/` |
+| Browser client, auth, RPC wrappers, cloud quiz | `src/cloud/` |
+| Sign-in, legacy import | `src/account/` |
+| Admin dashboard (`#/admin`) | `src/admin/` |
+| Parent dashboard (`#/parent`) | `src/parent/` |
+| Student group leaderboards (`#/groups`) | `src/groups/` |
+| Database tests, local test emulator | `supabase/tests/`, `scripts/e2e/` |
+
+* **Roles:** students (created by a parent: username + password, no email), parents
+  (self sign-up with email), admins (granted only by the owner with `grant_admin`).
+* **Guest vs signed in:** guests play the bundled bank with device-local rewards. Signed-in
+  students play published content from the database; the server checks every answer and
+  pays XP/coins once through a ledger.
+* **Adding a subject without code:** admin → «المواد» (subject, world preset, units,
+  lessons) → «الكتب» (upload) → «التوليد» (page range, estimate, confirm) → «المراجعة»
+  (edit, approve, publish). The subject appears on the adventure map for students without
+  a deploy. Questions can also be written by hand in «المراجعة».
+* **AI generation** is off by default and needs the owner's Anthropic key as an Edge
+  Function secret. Cost controls: daily page and question limits, concurrent jobs, a
+  monthly budget, and an estimate before every job.
+* **Parents:** results by subject, unit and lesson with explained revision suggestions;
+  private groups with invitation codes and per-child approval; privacy and deletion
+  controls.
+* **Local device data:** after signing in, a student can import old device history once
+  as unverified records. Old coins and XP are never credited.
+
+**Local testing:** `npm run test:db` needs PostgreSQL 16 (`TEST_DB_URL`). `bash scripts/e2e/start-local-stack.sh` starts a test-only emulator of the Supabase APIs over a local database and serves a build pointed at it (used for the browser journeys). The emulator is not a substitute for the real service.
+
+**Limitations:** the server checks make cheating much harder, but the system is not
+cheat-proof (for example, students can look answers up). Legal compliance has not been
+reviewed. Production journeys must be re-run against the real Supabase project once it
+is configured.
+
 ## Deployment
 
-Every push to `main` runs `.github/workflows/deploy.yml`: `npm ci` → type check → unit tests → `vite build` → upload `dist/` → deploy to GitHub Pages.
+Every push to `main` runs `.github/workflows/deploy.yml`: `npm ci` → database tests (Postgres service) → type check → unit tests → `vite build` → upload `dist/` → deploy to GitHub Pages. Pull requests run type check, lint, unit tests, database tests and build (`.github/workflows/ci.yml`).
+
+The build reads two **public** repository variables (Settings → Secrets and variables → Actions → *Variables*): `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. Without them the site is built in guest mode. Database migrations and Edge Functions are deployed to Supabase separately (see [owner setup](docs/backend/OWNER-SETUP.md)).
 
 One-time setup: **Repository → Settings → Pages → Build and deployment → Source → GitHub Actions.**
 
@@ -159,4 +203,4 @@ One-time setup: **Repository → Settings → Pages → Build and deployment →
 
 Copy `.env.example` to `.env.local` for local values. Only `VITE_`-prefixed variables reach the browser, and **everything in the browser is public**.
 
-GitHub Pages hosts static files only. The future backend (accounts, parent dashboards, leaderboards, textbook processing) will use **Supabase** with secure server-side functions. Never commit API keys, service-role keys, textbooks, or any student data to this repository.
+GitHub Pages hosts static files only. Accounts, dashboards, leaderboards and textbook processing use **Supabase**. The service-role/secret key and `ANTHROPIC_API_KEY` exist only as Supabase Edge Function secrets — never in `VITE_` variables, GitHub, the build or logs. Never commit API keys, textbooks, or any student data to this repository.

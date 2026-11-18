@@ -34,6 +34,15 @@ interface Anomaly {
   answers: number
   accuracy: number
 }
+interface Deletion {
+  id: string
+  scope: 'child' | 'family'
+  status: 'pending' | 'completed' | 'cancelled'
+  reason: string | null
+  created_at: string
+  requester: string | null
+  child: string | null
+}
 interface Audit {
   id: number
   action: string
@@ -54,6 +63,7 @@ export function ReportsSection() {
     return data as Flag[]
   }, [])
   const anomalies = useLoad(() => rpc<Anomaly[]>('admin_anomalies'), [])
+  const deletions = useLoad(() => rpc<Deletion[]>('admin_deletion_requests'), [])
   const audit = useLoad(async () => {
     const { data, error } = await db().from('audit_log').select('id, action, entity, entity_id, created_at').order('created_at', { ascending: false }).limit(40)
     if (error) throw error
@@ -173,6 +183,32 @@ export function ReportsSection() {
           </tbody>
         </table>
         {anomalies.data?.length === 0 && <p className="area__muted">لا توجد مؤشرات حاليًّا.</p>}
+      </div>
+
+      <h2 className="area__h2">طلبات حذف البيانات</h2>
+      <div className="area__card">
+        <p className="area__muted">حذف حساب ابن يتم مباشرة من لوحة ولي الأمر. طلبات حذف حساب العائلة تُنفَّذ من لوحة Supabase (Authentication → Users) ثم تُعلَّم هنا بأنها نُفّذت.</p>
+        {deletions.data?.length === 0 && <p className="area__muted">لا توجد طلبات.</p>}
+        <ul>
+          {(deletions.data ?? []).map((d) => (
+            <li key={d.id} className="area__row" style={{ justifyContent: 'space-between' }}>
+              <span>
+                {new Date(d.created_at).toLocaleDateString('ar')} — {d.scope === 'family' ? 'حساب العائلة' : `حساب الابن ${d.child ?? ''}`} ({d.requester ?? 'ولي أمر'}){' '}
+                <span className="area__chip">{d.status === 'pending' ? 'بانتظار التنفيذ' : d.status === 'completed' ? 'نُفّذ' : 'أُلغي'}</span>
+              </span>
+              {d.status === 'pending' && (
+                <span className="area__row">
+                  <button type="button" className="area__btn area__btn--ok" onClick={() => void rpc('admin_set_deletion_request', { p_request: d.id, p_status: 'completed' }).then(deletions.reload, (e) => setMsg(adminError(e)))}>
+                    نُفّذ
+                  </button>
+                  <button type="button" className="area__btn area__btn--ghost" onClick={() => void rpc('admin_set_deletion_request', { p_request: d.id, p_status: 'cancelled' }).then(deletions.reload, (e) => setMsg(adminError(e)))}>
+                    إلغاء
+                  </button>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
 
       <h2 className="area__h2">سجل التدقيق (آخر ٤٠ عملية)</h2>

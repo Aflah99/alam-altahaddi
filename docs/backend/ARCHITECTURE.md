@@ -80,3 +80,39 @@ every function and policy. Hiding a button is never the only protection.
 
 The emulator is not Supabase: Auth emails, rate limiting of Auth itself, Storage
 limits and the Deno runtime are only verified on the real project.
+
+## Admin content workflow (no code, no deploy)
+
+1. **المواد:** create a subject (name, slug, world preset, colour) and its units and lessons.
+2. **الكتب:** upload a textbook (PDF, DOCX or Markdown) into the private `textbooks` bucket.
+   The `ai-worker` function counts its pages.
+3. **التوليد:** choose a book, a page range and a lesson. The dashboard shows an estimate
+   (tokens and cost) from `ai_estimate`. Confirming checks that AI is enabled, the daily
+   page/question limits, concurrent jobs and the monthly budget.
+4. **المهام:** the worker processes batches of pages (extraction, then generation with
+   Claude using a strict JSON schema). Already extracted pages are skipped on a rerun.
+   Each draft is checked automatically (`_shared/quality.ts`: 4 distinct options, one
+   correct answer, page in range, duplicates, hints that give the answer away, quotes that
+   are not on the page) and saved as **needs_review**. Nothing is published automatically.
+5. **المراجعة:** edit, approve, reject, flag for academic review, or publish. Publishing
+   rebuilds the lesson's missions. Students see the change on their next catalogue
+   refresh, with no deploy.
+
+AI is **off by default** (`ai_settings.enabled = false`). The Anthropic key exists only as
+an Edge Function secret. Without it the worker reports a clear configuration error.
+
+## Parents and private groups
+
+* **Dashboard (النتائج):** `parent_child_report(child, days)` returns accuracy, first-try
+  accuracy, assisted and missed counts, missions, estimated time, verified XP, results by
+  subject, unit and lesson, eight weeks of progress and the most-missed questions. The
+  revision suggestions (`src/parent/insights.ts`) are simple, explained rules over those
+  numbers. Imported device history is shown separately and marked unverified.
+* **Groups (المجموعات):** a parent (or admin) creates a group and invitation codes (expiry
+  and revoke). A child enters a code → **pending** → one of the child's own parents
+  approves. The owner sees members, invites and weekly participation. They can remove
+  members or close the group.
+* **Leaderboards (لوحة الأبطال):** weekly and all-time, verified XP only, nicknames and
+  characters only, visible only to members, the owner, member parents and admins.
+* **Privacy (الخصوصية والحساب):** hide a child from leaderboards, turn off group requests,
+  view activity, delete a child account, or request family deletion. See `PRIVACY.md`.
