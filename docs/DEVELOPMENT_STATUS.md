@@ -32,6 +32,17 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
   admin and the only account. Server checks: `is_admin`/`admin_dashboard` succeed for it and fail for others.
   To add another admin later: the person signs up, proves the email, then run `grant_admin('<email>')` server-side.
 
+## Features 1–5 expansion (2026-11-18/19, in progress)
+- Checkpoint before the expansion: `main` @ `a32b5f4`; database snapshot in private schema `backup_20261118`
+  (35 tables, no API access). Production had 1 admin, 0 students when the expansion began.
+- **F3 auth-first + F1 audio** (PR #21, merged): sign-in page is the first screen, no guest mode, role routing;
+  procedural Web Audio music (9 moods) + ~50 SFX; settings saved in `profiles.preferences`.
+- **F2 avatars & cosmetic economy** (migration `20261119000200`): human boy/girl starters (6 modest clothing themes,
+  8 hairstyles, hijab), 62 wearables in 11 slots, 6 creatures now legendary collectibles, 3 surprise packages
+  (60/150/350 coins, server CSPRNG, pity, replay-safe request ids), duplicates → نقاط التطوير (5/15/40/120/150),
+  6 cosmetic tiers (costs 20/45/90/160/280), parent controls (`child_controls`), admin economy section.
+- Browser journeys: `scripts/e2e/journey-auth.mjs`, `journey-economy.mjs` (local stack).
+
 ## Security advisor notes (deliberate)
 - `authenticated_security_definer_function_executable` (50): intended API RPCs; each checks the caller's role inside.
 - `rls_enabled_no_policy` on `group_join_attempts`: server-only table, written by `join_group_with_code`.

@@ -149,6 +149,10 @@ function StudentGame({
   const [override, setOverride] = useState<{ screen: string; track: TrackId } | null>(null)
 
   const play = useCallback((name: SfxName) => playSfx(name), [])
+  // The site root (or an adult-only link) opens the lobby for students.
+  useEffect(() => {
+    if (route.name === 'start' || route.name === 'parent' || route.name === 'admin') navigate({ name: 'lobby' }, { replace: true })
+  }, [route.name, navigate])
   const goBack = useCallback<Back>(
     (to) => {
       play('back')
