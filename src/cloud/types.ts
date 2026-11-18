@@ -49,6 +49,57 @@ export interface GameState {
   equipped: Record<string, string>
   legacy_imported: boolean
   mission_best: Record<string, number>
+  appearance: Record<string, unknown>
+  upgrade_points: number
+  tiers: Record<string, number>
+  controls: Controls
+}
+
+export interface Controls {
+  packages_allowed: boolean
+  packages_daily_limit: number
+  multiplayer_allowed: boolean
+  reactions_allowed: boolean
+}
+
+export type RarityName = 'common' | 'rare' | 'epic' | 'legendary'
+export interface PackageType {
+  id: string
+  name: string
+  description: string
+  price: number
+  rolls: number
+  guarantee: RarityName
+  weights: Record<RarityName, number>
+  pity_epic: number
+  pity_legendary: number
+  bundle_chance: number
+}
+export interface PackageReward {
+  kind: 'item' | 'coins' | 'points'
+  rarity: RarityName
+  item?: string
+  category?: string
+  duplicate?: boolean
+  points?: number
+  coins?: number
+}
+export interface PackagesInfo {
+  packages: PackageType[]
+  allowed: boolean
+  daily_limit: number
+  opened_today: number
+  pools: Partial<Record<RarityName, number>>
+  history: { at: string; package: string; price: number; rewards: PackageReward[] }[]
+}
+export interface PackageOpen {
+  open_id: string
+  package: string
+  price: number
+  rewards: PackageReward[]
+  replay: boolean
+  coins: number
+  points: number
 }
 
 export interface SessionQuestion {

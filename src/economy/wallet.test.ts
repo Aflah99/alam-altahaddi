@@ -3,7 +3,7 @@ import { COSMETICS, composeOutfit, getCosmetic } from '../characters/cosmetics'
 import { BASE_CHARACTER_IDS, getCharacter, ROSTER } from '../characters/roster'
 import type { MissionState, QuestionResult } from '../quiz/engine'
 import { summarize } from '../quiz/engine'
-import { CATALOG, getItem } from './catalog'
+import { CATALOG, getItem } from './legacyCatalog'
 import { levelInfo, PASS_ACCURACY, REWARDS, xpToNext } from './config'
 import {
   applyTransactions,

@@ -420,3 +420,162 @@
     font-size: 0.9rem;
   }
 }
+
+/* ---------- Features 2: rarities, tiers, packages, upgrades ---------- */
+.shopx__tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.shopx__tab {
+  font-size: 0.92rem;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+.shopx__points {
+  margin-inline-start: 10px;
+  font-weight: 900;
+  color: #b9f6ff;
+  text-shadow: var(--pixel-outline);
+}
+.shopx__card[data-rarity='rare'] { box-shadow: inset 0 0 0 3px #2a78d4, inset 0 -6px 0 #cfe6ff; }
+.shopx__card[data-rarity='epic'] { box-shadow: inset 0 0 0 3px #7c4dd6, inset 0 -6px 0 #e7d9ff; }
+.shopx__card[data-rarity='legendary'] { box-shadow: inset 0 0 0 3px #d9a91c, inset 0 -6px 0 #ffeeb0; }
+.shopx__card.is-selected[data-rarity] { box-shadow: inset 0 0 0 4px #ff8a2a, inset 0 0 0 7px var(--ink); }
+.rarity-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: var(--ink);
+  background: var(--rarity);
+  box-shadow: inset 0 0 0 2px var(--ink);
+  vertical-align: middle;
+}
+.tier-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: var(--ink);
+  background: #c47a3a;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.tier-tag[data-tier='2'] { background: #d6dde8; }
+.tier-tag[data-tier='3'] { background: #ffd34d; }
+.tier-tag[data-tier='4'] { background: #eef6ff; }
+.tier-tag[data-tier='5'] { background: #7ef0ff; }
+.tier-tag[data-tier='6'] { background: linear-gradient(90deg, #ff7ad9, #ffd34d, #7ef0ff, #b57bff); }
+.locker__chars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 44%), 1fr));
+  gap: 12px;
+}
+.locker__detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 12px;
+  color: var(--white);
+  background: rgb(42 29 92 / 0.92);
+  box-shadow: inset 0 0 0 3px var(--white);
+}
+.locker__detail .shopx__name { color: var(--white); }
+.upgrade h4 { margin: 4px 0; }
+.upgrade__tiers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.upgrade__tiers .tier-tag { opacity: 0.45; }
+.upgrade__tiers .tier-tag[data-done] { opacity: 1; }
+.upgrade__tiers .tier-tag[aria-current] { outline: 3px solid var(--white); }
+.upgrade__compare {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.6rem;
+}
+.upgrade__compare figure {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.upgrade__compare .shopx__thumb { --cell: 3px; }
+
+/* Packages */
+.pkgs { display: flex; flex-direction: column; gap: 12px; }
+.pkgs__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pkgs__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  text-align: center;
+  color: var(--ink);
+  background: #fff8e8;
+  box-shadow: inset 0 0 0 3px var(--ink), 0 5px 0 var(--ink);
+}
+.pkgs__card[data-package='heroes'] { background: #e3f1ff; }
+.pkgs__card[data-package='legends'] { background: #f0e6ff; }
+.pkgs__name { margin: 0; font-size: 1.2rem; font-weight: 900; }
+.pkgs__desc { margin: 0; font-size: 0.88rem; line-height: 1.6; }
+.chest { width: 96px; height: 60px; }
+.chest--shake { animation: chest-shake 0.35s steps(2, end) infinite; }
+@keyframes chest-shake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  25% { transform: translateX(-3px) rotate(-4deg); }
+  75% { transform: translateX(3px) rotate(4deg); }
+}
+.pkgs__info, .pkgs__history {
+  padding: 10px 12px;
+  color: var(--white);
+  background: rgb(42 29 92 / 0.9);
+  box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.7);
+}
+.pkgs__explain p { margin: 8px 0; line-height: 1.7; font-size: 0.9rem; }
+.pkgs__rarities { margin: 6px 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 0.88rem; }
+.pkgs__odds { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 6px; }
+.pkgs__odds th, .pkgs__odds td { padding: 4px; border: 1px solid rgb(255 255 255 / 0.3); text-align: center; }
+.pkgs__history summary { cursor: pointer; font-weight: 700; }
+.pkgs__history ul { margin: 6px 0 0; padding-inline-start: 18px; font-size: 0.85rem; line-height: 1.7; }
+
+/* Reward reveal */
+.reveal__list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.reveal__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 3px var(--rarity), 0 0 14px var(--rarity);
+  animation: reveal-pop 0.45s steps(4, end);
+}
+.reveal__item[data-rarity='legendary'] { animation: reveal-pop 0.45s steps(4, end), reveal-glow 1.2s ease-in-out infinite alternate; }
+@keyframes reveal-pop { 0% { transform: scale(0.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes reveal-glow { from { box-shadow: inset 0 0 0 3px var(--rarity), 0 0 6px var(--rarity); } to { box-shadow: inset 0 0 0 3px var(--rarity), 0 0 22px var(--rarity); } }
+.reveal__art { --cell: 2px; display: flex; align-items: flex-end; justify-content: center; min-width: 64px; min-height: 64px; }
+.reveal__bundle { font-size: 2rem; }
+.reveal__text { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: start; }
+.reveal__new { color: #8fd16a; font-weight: 900; }
+.reveal__dup { font-size: 0.85rem; }
+.reveal__points { display: inline-block; color: #b9f6ff; font-weight: 900; animation: reveal-points 0.6s 0.6s steps(3, end) both; }
+@keyframes reveal-points { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.reveal__balance { font-weight: 700; text-align: center; }
+[data-motion='reduced'] .reveal__item, [data-motion='reduced'] .reveal__points, [data-motion='reduced'] .chest--shake { animation: none; }

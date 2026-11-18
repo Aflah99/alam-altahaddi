@@ -6,7 +6,7 @@ import { installAudio } from './audio/engine'
 import { playMusic, type TrackId } from './audio/music'
 import { playSfx, type SfxName } from './audio/sfx'
 import { AudioButton } from './components/AudioButton'
-import { getCharacter, isCharacterId } from './characters/roster'
+import { isCharacterId, ROSTER } from './characters/roster'
 import * as api from './cloud/api'
 import { useAuth } from './cloud/auth'
 import { CloudQuizScreen } from './cloud/CloudQuizScreen'
@@ -19,7 +19,7 @@ import type { PlayerIdentity } from './player/playerProfile'
 import { usePlayerProfile } from './player/usePlayerProfile'
 import { LessonSelectScreen } from './quiz/LessonSelectScreen'
 import { treeFromCatalog } from './quiz/lessonTree'
-import { CharacterSelectScreen } from './screens/CharacterSelectScreen'
+import { AvatarEditorScreen } from './screens/AvatarEditorScreen'
 import { LobbyScreen } from './screens/LobbyScreen'
 import { LockerScreen } from './shop/LockerScreen'
 import { ShopScreen } from './shop/ShopScreen'
@@ -158,7 +158,7 @@ function StudentGame({
   )
 
   const identity: PlayerIdentity | null = cloud.state
-    ? { id: cloud.state.student_id, nickname: cloud.state.nickname, characterId: isCharacterId(cloud.state.character_id) ? cloud.state.character_id : 'green-slime' }
+    ? { id: cloud.state.student_id, nickname: cloud.state.nickname, characterId: isCharacterId(cloud.state.character_id) ? cloud.state.character_id : 'human-boy' }
     : null
   const view = cloud.view
   const outfit = cloud.outfit
@@ -178,7 +178,7 @@ function StudentGame({
     playMusic(musicOverride ?? MUSIC[screen] ?? 'lobby')
   }, [screen, musicOverride])
 
-  const character = identity ? getCharacter(identity.characterId) : null
+  const character = cloud.character
   const shopCategory: ShopCategory | undefined = route.name === 'shop' ? CATEGORIES.find((c) => c.id === route.category)?.id : undefined
   const key =
     route.name === 'quiz' && screen === 'quiz'
@@ -212,27 +212,29 @@ function StudentGame({
           <GroupsScreen onBack={() => goBack({ name: 'lobby' })} />
         </Suspense>
       )}
-      {screen === 'select' && (
-        <CharacterSelectScreen
-          profile={identity}
-          onConfirm={(characterId, nickname) => {
+      {screen === 'select' && identity && cloud.state && (
+        <AvatarEditorScreen
+          nickname={identity.nickname}
+          characterId={identity.characterId}
+          appearance={cloud.state.appearance}
+          outfit={outfit}
+          ownedCreatures={ROSTER.filter((c) => view?.unlockedCharacters.has(c.id)).map((c) => c.id)}
+          onSave={({ appearance, creature, nickname }) => {
             void (async () => {
-              if (nickname !== identity?.nickname) await cloud.setNickname(nickname).catch(() => {})
-              await cloud.setCharacter(characterId)
+              if (nickname !== identity.nickname) await cloud.setNickname(nickname).catch(() => {})
+              if (appearance) await cloud.setAppearance({ ...appearance }).catch(() => {})
+              else if (creature) await cloud.setCharacter(creature).catch(() => {})
             })()
-            play('select')
             navigate({ name: 'lobby' })
           }}
           onBack={() => goBack({ name: 'lobby' })}
           play={play}
-          reducedMotion={settings.reducedMotion}
-          available={[...(view?.unlockedCharacters ?? [])]}
-          outfit={outfit}
         />
       )}
       {screen === 'lobby' && identity && view && (
         <LobbyScreen
           profile={identity}
+          character={character!}
           view={view}
           outfit={outfit}
           storageNote="حساب طالب · تقدّمك محفوظ في حسابك"
@@ -254,6 +256,7 @@ function StudentGame({
           outfit={outfit}
           initialCategory={shopCategory}
           onPurchase={cloud.purchase}
+          onChanged={() => void cloud.reloadState()}
           onLocker={() => navigate({ name: 'locker' })}
           onBack={() => goBack({ name: 'lobby' })}
           play={play}
@@ -263,6 +266,7 @@ function StudentGame({
       {screen === 'locker' && identity && character && view && (
         <LockerScreen
           character={character}
+          characterId={identity.characterId}
           nickname={identity.nickname}
           view={view}
           equipped={cloud.equipped}
@@ -270,6 +274,8 @@ function StudentGame({
           onEquip={(id) => void cloud.equip(id)}
           onUnequip={(slot) => void cloud.unequip(slot)}
           onSelectCharacter={(id) => void cloud.setCharacter(id)}
+          onEditAvatar={() => navigate({ name: 'select' })}
+          onUpgrade={cloud.upgrade}
           onShop={(category) => navigate({ name: 'shop', category })}
           onBack={() => goBack({ name: 'lobby' })}
           play={play}

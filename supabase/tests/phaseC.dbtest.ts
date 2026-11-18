@@ -129,7 +129,7 @@ describe('private groups and parent approval', () => {
     const week = await rpc<{ rows: { nickname: string; xp: number; rank: number; is_me: boolean }[] }>(a, 'group_leaderboard', group, 'week')
     expect(week.rows.map((r) => r.nickname)).toEqual(['نمر', 'صقر'])
     expect(week.rows[0]).toMatchObject({ rank: 1, is_me: true })
-    expect(Object.keys(week.rows[0]).sort()).toEqual(['character_id', 'is_me', 'nickname', 'outfit', 'rank', 'xp'])
+    expect(Object.keys(week.rows[0]).sort()).toEqual(['appearance', 'character_id', 'is_me', 'nickname', 'outfit', 'rank', 'xp'])
     const all = await rpc<{ rows: { nickname: string; xp: number }[] }>(owner, 'group_leaderboard', group, 'all')
     expect(all.rows[0].nickname).toBe('صقر')
     // Parents of members can view; outsiders cannot.

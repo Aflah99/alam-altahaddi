@@ -1,39 +1,51 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { SfxName } from '../audio/sfx'
 import { CharacterSprite } from '../characters/CharacterSprite'
-import { fitsCharacter, getCosmetic, type CosmeticSlot } from '../characters/cosmetics'
-import { ROSTER, type CharacterDef, type CharacterId } from '../characters/roster'
+import { getCharacter, ROSTER, type CharacterDef, type CharacterId } from '../characters/roster'
+import type { GameView } from '../cloud/useCloudGame'
 import { CornerButton } from '../components/CornerButton'
 import { PixelSprite } from '../components/PixelSprite'
 import { PlayArrow } from '../components/sprites'
-import { CATALOG, CATEGORIES, getItem, itemForCharacter, type ShopCategory } from '../economy/catalog'
+import { MAX_TIER, SLOTS, tierDef, upgradeCost, type Slot } from '../cosmetics/wearables'
+import { CATALOG, getItem, type ShopCategory } from '../economy/catalog'
 import { CoinAmount } from '../economy/ui/Coin'
 import { LevelBar } from '../economy/ui/LevelBar'
-import type { Equipped, WalletView } from '../economy/wallet'
 import { WARDROBE } from '../lobby/lobbySprites'
+import { ar } from '../quiz/format'
 import { CategoryTabs } from './CategoryTabs'
+import { ItemThumb, RarityTag } from './itemArt'
+import { itemFits, tryOn } from './outfit'
 import './shop.css'
+
+type Tab = 'characters' | Slot
 
 interface LockerScreenProps {
   character: CharacterDef
+  characterId: CharacterId
   nickname: string
-  view: WalletView
-  equipped: Equipped
+  view: GameView
+  equipped: Partial<Record<Slot, string>>
   outfit: readonly string[]
   onEquip: (itemId: string) => void
-  onUnequip: (slot: CosmeticSlot) => void
+  onUnequip: (slot: Slot) => void
   onSelectCharacter: (id: CharacterId) => void
+  onEditAvatar: () => void
+  onUpgrade: (itemId: string, fromTier: number) => Promise<unknown>
   onShop: (category: ShopCategory) => void
   onBack: () => void
   play: (name: SfxName) => void
 }
 
-const SLOT_NAMES: Record<CosmeticSlot, string> = { hat: 'القبعة', outfit: 'الملابس', accessory: 'الإكسسوار', bag: 'الحقيبة' }
+const TABS: readonly { id: Tab; label: string }[] = [{ id: 'characters', label: 'الشخصيات' }, ...SLOTS]
 
-/** الخزانة — equip owned cosmetics and switch between unlocked characters. */
-export function LockerScreen({ character, nickname, view, equipped, outfit, onEquip, onUnequip, onSelectCharacter, onShop, onBack, play }: LockerScreenProps) {
-  const [tab, setTab] = useState<ShopCategory>('hat')
+/** الخزانة — wear owned items, upgrade them with نقاط التطوير, and switch characters. */
+export function LockerScreen(props: LockerScreenProps) {
+  const { character, characterId, nickname, view, equipped, outfit, onEquip, onUnequip, onSelectCharacter, onEditAvatar, onUpgrade, onShop, onBack, play } = props
+  const [tab, setTab] = useState<Tab>('characters')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [cheer, setCheer] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,15 +57,38 @@ export function LockerScreen({ character, nickname, view, equipped, outfit, onEq
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onBack])
-
   useEffect(() => {
     if (!cheer) return
     const t = window.setTimeout(() => setCheer(0), 1000)
     return () => window.clearTimeout(t)
   }, [cheer])
 
-  const ownedInTab = tab === 'characters' ? [] : CATALOG.filter((i) => i.category === tab && view.owned.has(i.id))
-  const slot = tab === 'characters' ? null : tab
+  const ownedInTab = useMemo(() => (tab === 'characters' ? [] : CATALOG.filter((i) => i.category === tab && view.owned.has(i.id))), [tab, view.owned])
+  const selected = selectedId ? getItem(selectedId) : ownedInTab[0]
+  const tier = selected ? (view.tiers[selected.id] ?? 1) : 1
+  const cost = upgradeCost(tier)
+  const isWorn = selected ? equipped[selected.category as Slot] === selected.id : false
+  const fits = selected ? itemFits(character, selected.id) : true
+
+  const upgrade = async () => {
+    if (!selected || cost === null || busy) return
+    setBusy(true)
+    setMessage(null)
+    try {
+      await onUpgrade(selected.id, tier)
+      play(tier + 1 === MAX_TIER ? 'upgradeMythic' : 'upgrade')
+      setCheer((n) => n + 1)
+      setMessage(`أصبح «${selected.name}» ${tierDef(tier + 1).label}!`)
+    } catch (e) {
+      play('wrong')
+      const msg = String((e as { message?: string }).message)
+      setMessage(/insufficient points/.test(msg) ? 'نقاط التطوير لا تكفي.' : /tier changed|max tier/.test(msg) ? 'تم تحديث المستوى؛ حاول مرة أخرى.' : 'تعذّرت الترقية. حاول مرة أخرى.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const ownedCreatures = ROSTER.filter((c) => view.unlockedCharacters.has(c.id))
 
   return (
     <div className="shopx shopx--locker">
@@ -66,6 +101,7 @@ export function LockerScreen({ character, nickname, view, equipped, outfit, onEq
           </h1>
           <span className="shopx__balance">
             <CoinAmount value={view.coins} />
+            <span className="shopx__points" title="نقاط التطوير">✦ {ar(view.points)}</span>
           </span>
         </header>
 
@@ -75,157 +111,176 @@ export function LockerScreen({ character, nickname, view, equipped, outfit, onEq
               <CharacterSprite character={character} outfit={outfit} mood={cheer ? 'happy' : 'neutral'} decorative />
             </div>
             <div className="shopx__details">
-              <h2 className="shopx__name">
-                {nickname} <span className="shopx__sub">— {character.name}</span>
-              </h2>
+              <h2 className="shopx__name">{nickname}</h2>
               <LevelBar info={view.level} />
-              <ul className="shopx__worn" aria-label="ما ترتديه الآن">
-                {(Object.keys(SLOT_NAMES) as CosmeticSlot[]).map((s) => {
-                  const id = equipped[s]
-                  const item = id ? getItem(id) : undefined
-                  const hidden = id && !fitsCharacter(getCosmetic(id)!, character.id)
-                  return (
-                    <li key={s}>
-                      <span className="shopx__worn-slot">{SLOT_NAMES[s]}:</span> {item ? item.name : 'لا شيء'}
-                      {hidden && <span className="shopx__worn-hidden"> (لا يظهر على هذه الشخصية)</span>}
-                    </li>
-                  )
-                })}
-              </ul>
+              {!character.human && <p className="shopx__hint">الكائنات الأسطورية ترتدي بعض الإكسسوارات والرفاق فقط؛ الشخصية البشرية ترتدي كل شيء.</p>}
             </div>
           </section>
 
-          <section className="shopx__catalog" aria-label="أغراضك">
+          <section className="shopx__catalog">
             <CategoryTabs
-              categories={CATEGORIES}
+              categories={TABS}
               active={tab}
-              onSelect={(c) => {
+              onSelect={(t) => {
                 play('move')
-                setTab(c)
+                setTab(t)
+                setSelectedId(null)
+                setMessage(null)
               }}
             />
-
             {tab === 'characters' ? (
-              <ul className="shopx__shelf" role="list">
-                {ROSTER.map((c) => {
-                  const unlocked = view.unlockedCharacters.has(c.id)
-                  const isCurrent = c.id === character.id
-                  const shopItem = itemForCharacter(c.id)
-                  return (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        className={`shopx__card${isCurrent ? ' is-selected' : ''}${unlocked ? '' : ' is-locked'}`}
-                        aria-pressed={isCurrent}
-                        onClick={() => {
-                          if (!unlocked) {
-                            play('move')
-                            onShop('characters')
-                            return
-                          }
-                          if (isCurrent) return
-                          play('confirm')
-                          onSelectCharacter(c.id)
-                          setCheer((n) => n + 1)
-                        }}
-                      >
-                        <span className="shopx__thumb">
-                          <CharacterSprite character={c} outfit={unlocked ? outfit : []} anim="still" decorative />
-                        </span>
-                        <span className="shopx__card-name">{c.name}</span>
-                        {isCurrent ? (
-                          <span className="shopx__card-owned">✓ الشخصية الحالية</span>
-                        ) : unlocked ? (
-                          <span className="shopx__card-action">اختيار</span>
-                        ) : (
-                          <span className="shopx__card-lock">
-                            مقفلة · في المتجر {shopItem && <CoinAmount value={shopItem.price} />}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
+              <div className="locker__chars">
+                <button
+                  type="button"
+                  className={`shopx__card${character.human ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    play('select')
+                    onEditAvatar()
+                  }}
+                >
+                  <span className="shopx__thumb">
+                    <CharacterSprite character={character.human ? character : getCharacter('human-boy')} anim="still" decorative />
+                  </span>
+                  <span className="shopx__card-name">شخصيتك البشرية</span>
+                  <span className="shopx__card-owned">تصميم ✎</span>
+                </button>
+                {ownedCreatures.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`shopx__card${characterId === c.id ? ' is-selected' : ''}`}
+                    data-rarity="legendary"
+                    aria-pressed={characterId === c.id}
+                    onClick={() => {
+                      play('select')
+                      setCheer((n) => n + 1)
+                      onSelectCharacter(c.id)
+                    }}
+                  >
+                    <span className="shopx__thumb">
+                      <CharacterSprite character={c} anim="still" decorative />
+                    </span>
+                    <span className="shopx__card-name">{c.name}</span>
+                    <RarityTag rarity="legendary" />
+                  </button>
+                ))}
+                {ownedCreatures.length === 0 && <p className="shopx__note">الكائنات الأسطورية (السلايم، الثعلب، الروبوت، البومة، السلحفاة) نادرة جدًّا وتظهر في صناديق المفاجآت.</p>}
+              </div>
             ) : ownedInTab.length === 0 ? (
               <div className="shopx__empty">
-                <p>لا تملك أغراضًا في هذا القسم بعد.</p>
+                <p>لا تملك شيئًا في هذا القسم بعد.</p>
                 <button type="button" className="pixel-button" onClick={() => onShop(tab)}>
-                  الذهاب إلى المتجر
+                  تسوّق من المتجر
                 </button>
               </div>
             ) : (
-              <ul className="shopx__shelf" role="list">
-                {slot && (
-                  <li>
-                    <button
-                      type="button"
-                      className={`shopx__card${!equipped[slot] ? ' is-selected' : ''}`}
-                      aria-pressed={!equipped[slot]}
-                      onClick={() => {
-                        play('back')
-                        onUnequip(slot)
-                      }}
-                    >
-                      <span className="shopx__thumb">
-                        <CharacterSprite character={character} outfit={outfit.filter((id) => getCosmetic(id)?.slot !== slot)} anim="still" decorative />
-                      </span>
-                      <span className="shopx__card-name">بدون {SLOT_NAMES[slot]}</span>
-                      <span className="shopx__card-action">{!equipped[slot] ? '✓ مختار' : 'خلع'}</span>
-                    </button>
-                  </li>
-                )}
-                {ownedInTab.map((item) => {
-                  const cosmetic = getCosmetic(item.id)!
-                  const fits = fitsCharacter(cosmetic, character.id)
-                  const worn = equipped[cosmetic.slot] === item.id
-                  return (
+              <>
+                <ul className="shopx__shelf" role="list">
+                  {ownedInTab.map((item) => (
                     <li key={item.id}>
                       <button
                         type="button"
-                        className={`shopx__card${worn ? ' is-selected' : ''}${fits ? '' : ' is-unfit'}`}
-                        aria-pressed={worn}
-                        aria-disabled={!fits}
+                        className={`shopx__card${item.id === selected?.id ? ' is-selected' : ''}`}
+                        data-rarity={item.rarity}
+                        aria-pressed={item.id === selected?.id}
                         onClick={() => {
-                          if (!fits) {
-                            play('back')
-                            return
-                          }
-                          if (worn) {
-                            play('back')
-                            onUnequip(cosmetic.slot)
-                          } else {
-                            play('confirm')
-                            onEquip(item.id)
-                            setCheer((n) => n + 1)
-                          }
+                          play('move')
+                          setSelectedId(item.id)
+                          setMessage(null)
                         }}
                       >
                         <span className="shopx__thumb">
-                          <CharacterSprite
-                            character={character}
-                            outfit={[...outfit.filter((id) => getCosmetic(id)?.slot !== cosmetic.slot), item.id]}
-                            anim="still"
-                            decorative
-                          />
+                          <ItemThumb itemId={item.id} character={character} tier={view.tiers[item.id] ?? 1} />
                         </span>
                         <span className="shopx__card-name">{item.name}</span>
-                        {!fits ? (
-                          <span className="shopx__card-lock">لا يناسب {character.name}</span>
-                        ) : worn ? (
-                          <span className="shopx__card-owned">✓ مُرتدى — اضغط للخلع</span>
-                        ) : (
-                          <span className="shopx__card-action">ارتداء</span>
-                        )}
+                        <span className="tier-tag" data-tier={view.tiers[item.id] ?? 1}>
+                          {tierDef(view.tiers[item.id] ?? 1).label}
+                          {equipped[item.category as Slot] === item.id ? ' · مرتدى' : ''}
+                        </span>
                       </button>
                     </li>
-                  )
-                })}
-              </ul>
+                  ))}
+                </ul>
+                {selected && (
+                  <div className="locker__detail">
+                    <h3 className="shopx__name">
+                      {selected.name} <RarityTag rarity={selected.rarity} />
+                    </h3>
+                    {!fits && <p className="shopx__warn">يظهر على الشخصيات البشرية فقط.</p>}
+                    <div className="shopx__buy">
+                      {isWorn ? (
+                        <button
+                          type="button"
+                          className="pixel-button"
+                          onClick={() => {
+                            play('menuClose')
+                            onUnequip(selected.category as Slot)
+                          }}
+                        >
+                          خلعه
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="pixel-button"
+                          onClick={() => {
+                            play('equip')
+                            setCheer((n) => n + 1)
+                            onEquip(selected.id)
+                          }}
+                        >
+                          ارتداؤه
+                        </button>
+                      )}
+                    </div>
+                    <div className="upgrade">
+                      <h4>الترقية · المستوى الحالي: {tierDef(tier).label}</h4>
+                      <ol className="upgrade__tiers" aria-label="مستويات الترقية">
+                        {[1, 2, 3, 4, 5, 6].map((t) => (
+                          <li key={t} className="tier-tag" data-tier={t} aria-current={t === tier ? 'step' : undefined} data-done={t <= tier || undefined}>
+                            {tierDef(t).label}
+                          </li>
+                        ))}
+                      </ol>
+                      {cost === null ? (
+                        <p className="shopx__note">وصل هذا الغرض إلى أعلى مستوى: أسطوري ✨</p>
+                      ) : (
+                        <>
+                          <div className="upgrade__compare">
+                            <figure>
+                              <span className="shopx__thumb">
+                                <CharacterSprite character={character} outfit={tryOn(outfit, selected.id, tier)} anim="still" decorative />
+                              </span>
+                              <figcaption>{tierDef(tier).label}</figcaption>
+                            </figure>
+                            <span aria-hidden="true">←</span>
+                            <figure>
+                              <span className="shopx__thumb">
+                                <CharacterSprite character={character} outfit={tryOn(outfit, selected.id, tier + 1)} anim="still" decorative />
+                              </span>
+                              <figcaption>{tierDef(tier + 1).label}</figcaption>
+                            </figure>
+                          </div>
+                          <p className="shopx__desc">
+                            التكلفة: {ar(cost)} نقطة تطوير · لديك {ar(view.points)}
+                          </p>
+                          <button type="button" className="pixel-button" disabled={busy || view.points < cost} onClick={() => void upgrade()}>
+                            ترقية إلى {tierDef(tier + 1).label}
+                          </button>
+                          {view.points < cost && <p className="shopx__hint">تحصل على نقاط التطوير من المكرّرات في صناديق المفاجآت.</p>}
+                        </>
+                      )}
+                      {message && (
+                        <p className="shopx__note" role="status">
+                          {message}
+                        </p>
+                      )}
+                      <p className="shopx__note">الترقية للمظهر فقط ولا تمنح أي أفضلية في الأسئلة أو المنافسات.</p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-            <button type="button" className="pause-menu__item shopx__to-shop" onClick={() => onShop(tab)}>
-              تسوّق المزيد من الأغراض
-            </button>
           </section>
         </div>
       </div>

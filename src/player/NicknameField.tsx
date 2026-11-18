@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import './NicknameField.css'
 import { NICKNAME_MAX, suggestNickname } from './playerProfile'
 
 interface NicknameFieldProps {

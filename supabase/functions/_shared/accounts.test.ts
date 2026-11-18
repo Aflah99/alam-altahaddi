@@ -18,7 +18,8 @@ describe('child account input', () => {
     for (const pw of ['abcdef1!', 'ABCDEF1!', 'Abcdefg!', 'Abcdefg1', 'Ab1!']) expect(passwordProblem(pw)).not.toBeNull()
   })
   it('only allows the free base characters at creation', () => {
-    expect(checkChildInput({ ...ok, character_id: 'fox' }).ok).toBe(true)
+    expect(checkChildInput({ ...ok, character_id: 'human-girl' }).ok).toBe(true)
+    expect(checkChildInput({ ...ok, character_id: 'fox' }).ok).toBe(false)
     expect(checkChildInput({ ...ok, character_id: 'owl' }).ok).toBe(false)
   })
   it('maps usernames to a non-routable internal address', () => {

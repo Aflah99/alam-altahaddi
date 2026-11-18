@@ -6,7 +6,7 @@ export const DEFAULT_STUDENT_EMAIL_DOMAIN = 'students.alam-altahaddi.invalid'
 export const USERNAME_RE = /^[a-z0-9_]{3,20}$/
 export const PASSWORD_MIN = 8
 export const MAX_CHILDREN_PER_PARENT = 8
-export const BASE_CHARACTERS = ['green-slime', 'blue-slime', 'little-robot', 'fox']
+export const BASE_CHARACTERS = ['human-boy', 'human-girl']
 
 export type Check = { ok: true } | { ok: false; error: string }
 

@@ -1,30 +1,61 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { getCosmetic, SLOT_ORDER, type CosmeticSlot } from '../characters/cosmetics'
-import { BASE_CHARACTER_IDS, isCharacterId, type CharacterId } from '../characters/roster'
+import { BASE_CHARACTER_IDS, getCharacter, isCharacterId, type CharacterDef, type CharacterId } from '../characters/roster'
+import { getWearable, SLOT_ORDER, wornKey, type Slot } from '../cosmetics/wearables'
 import { getItem } from '../economy/catalog'
 import { levelInfo } from '../economy/config'
 import type { WalletView } from '../economy/wallet'
-import type { ShopPurchaseResult } from '../shop/ShopScreen'
 import * as api from './api'
 import { arabicError } from './client'
-import type { CatalogSubject, GameState } from './types'
+import type { CatalogSubject, Controls, GameState } from './types'
 
 /** Published content is re-fetched when older than this, so new subjects appear without a deploy. */
 export const CATALOG_MAX_AGE_MS = 60_000
 
-export function viewFromState(s: GameState): WalletView {
+export interface GameView extends WalletView {
+  /** نقاط التطوير */
+  points: number
+  tiers: Record<string, number>
+  controls: Controls
+}
+
+export type ShopPurchaseResult = { ok: true } | { ok: false; reason: 'unknown-item' | 'owned' | 'insufficient'; missing?: number }
+
+const DEFAULT_CONTROLS: Controls = { packages_allowed: true, packages_daily_limit: 5, multiplayer_allowed: true, reactions_allowed: true }
+
+export function viewFromState(s: GameState): GameView {
   const owned = new Set(s.owned)
   const unlockedCharacters = new Set<CharacterId>(BASE_CHARACTER_IDS)
   for (const id of owned) {
     const c = getItem(id)?.characterId
     if (c) unlockedCharacters.add(c)
   }
-  return { xp: s.xp, coins: s.coins, level: levelInfo(s.xp), owned, unlockedCharacters }
+  return {
+    xp: s.xp,
+    coins: s.coins,
+    level: levelInfo(s.xp),
+    owned,
+    unlockedCharacters,
+    points: s.upgrade_points ?? 0,
+    tiers: s.tiers ?? {},
+    controls: s.controls ?? DEFAULT_CONTROLS,
+  }
+}
+
+/** Equipped items as sprite keys ("id@tier"), in drawing order. */
+export function outfitKeys(equipped: Partial<Record<string, string>>, tiers: Record<string, number>): string[] {
+  return SLOT_ORDER.map((s) => equipped[s])
+    .filter((id): id is string => !!id && !!getWearable(id))
+    .map((id) => wornKey(id, tiers[id] ?? 1))
+}
+
+/** The sprite for a player: human avatars use their saved appearance. */
+export function characterOf(characterId: string, appearance: unknown): CharacterDef {
+  return getCharacter(isCharacterId(characterId) ? characterId : 'human-boy', appearance)
 }
 
 /**
  * Signed-in student: the published catalogue and the server-side game state
- * (verified XP, coins, inventory, equipment, character).
+ * (verified XP, coins, upgrade points, inventory and tiers, equipment, avatar).
  */
 export function useCloudGame(active: boolean) {
   const [catalog, setCatalog] = useState<CatalogSubject[] | null>(null)
@@ -60,7 +91,6 @@ export function useCloudGame(active: boolean) {
       void reloadCatalog(true)
       void reloadState()
     }, 0)
-    // Coming back to the tab: pick up newly published content and progress from other devices.
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         void reloadCatalog()
@@ -75,11 +105,9 @@ export function useCloudGame(active: boolean) {
   }, [active, reloadCatalog, reloadState])
 
   const view = useMemo(() => (state ? viewFromState(state) : null), [state])
-  const equipped = useMemo(() => (state?.equipped ?? {}) as Partial<Record<CosmeticSlot, string>>, [state])
-  const outfit = useMemo(
-    () => SLOT_ORDER.map((s) => equipped[s]).filter((id): id is string => !!id && !!getCosmetic(id)),
-    [equipped],
-  )
+  const equipped = useMemo(() => (state?.equipped ?? {}) as Partial<Record<Slot, string>>, [state])
+  const outfit = useMemo(() => outfitKeys(equipped, state?.tiers ?? {}), [equipped, state])
+  const character = useMemo(() => (state ? characterOf(state.character_id, state.appearance) : null), [state])
 
   const purchase = useCallback(
     async (itemId: string): Promise<ShopPurchaseResult> => {
@@ -103,7 +131,7 @@ export function useCloudGame(active: boolean) {
 
   const equip = useCallback(
     async (itemId: string) => {
-      const slot = getCosmetic(itemId)?.slot
+      const slot = getWearable(itemId)?.slot
       if (slot) optimistic((s) => ({ ...s, equipped: { ...s.equipped, [slot]: itemId } }))
       try {
         await api.equipItem(itemId)
@@ -115,7 +143,7 @@ export function useCloudGame(active: boolean) {
   )
 
   const unequip = useCallback(
-    async (slot: CosmeticSlot) => {
+    async (slot: Slot) => {
       optimistic((s) => {
         const eq = { ...s.equipped }
         delete eq[slot]
@@ -143,6 +171,18 @@ export function useCloudGame(active: boolean) {
     [optimistic, reloadState],
   )
 
+  const setAppearance = useCallback(
+    async (appearance: Record<string, unknown>) => {
+      optimistic((s) => ({ ...s, appearance, character_id: appearance.body === 'girl' ? 'human-girl' : 'human-boy' }))
+      try {
+        await api.setAppearance(appearance)
+      } finally {
+        await reloadState()
+      }
+    },
+    [optimistic, reloadState],
+  )
+
   const setNickname = useCallback(
     async (nickname: string) => {
       await api.setNickname(nickname)
@@ -151,7 +191,36 @@ export function useCloudGame(active: boolean) {
     [reloadState],
   )
 
-  return { catalog, catalogError, reloadCatalog, state, stateError, reloadState, view, equipped, outfit, purchase, equip, unequip, setCharacter, setNickname }
+  const upgrade = useCallback(
+    async (itemId: string, fromTier: number) => {
+      try {
+        return await api.upgradeItem(itemId, fromTier)
+      } finally {
+        await reloadState()
+      }
+    },
+    [reloadState],
+  )
+
+  return {
+    catalog,
+    catalogError,
+    reloadCatalog,
+    state,
+    stateError,
+    reloadState,
+    view,
+    equipped,
+    outfit,
+    character,
+    purchase,
+    equip,
+    unequip,
+    setCharacter,
+    setAppearance,
+    setNickname,
+    upgrade,
+  }
 }
 
 export type CloudGame = ReturnType<typeof useCloudGame>

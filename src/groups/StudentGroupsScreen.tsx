@@ -1,6 +1,6 @@
+import { characterOf } from '../cloud/useCloudGame'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { CharacterSprite } from '../characters/CharacterSprite'
-import { getCharacter, isCharacterId } from '../characters/roster'
 import { groupLeaderboard, joinGroupWithCode, leaveGroup, myGroups, type Leaderboard } from '../cloud/api'
 import { arabicError } from '../cloud/client'
 import { CornerButton } from '../components/CornerButton'
@@ -183,7 +183,7 @@ function GroupBoard({ id, onLeft }: { id: string; onLeft: () => void }) {
           <li key={`${r.rank}-${r.nickname}`} className={`groupsx__row${r.is_me ? ' groupsx__row--me' : ''}`} data-testid="leader-row">
             <span className={`groupsx__rank groupsx__rank--${Math.min(r.rank, 4)}`}>{ar(r.rank)}</span>
             <span className="groupsx__avatar">
-              <CharacterSprite character={getCharacter(isCharacterId(r.character_id) ? r.character_id : 'green-slime')} outfit={r.outfit ?? []} anim="still" decorative />
+              <CharacterSprite character={characterOf(r.character_id, r.appearance)} outfit={r.outfit ?? []} anim="still" decorative />
             </span>
             <span className="groupsx__nick">
               {r.nickname}

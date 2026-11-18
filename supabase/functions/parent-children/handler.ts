@@ -44,7 +44,7 @@ export async function handleParentChildren(req: Request, { admin, env }: Ctx): P
         role: 'student',
         username,
         nickname: normalizeNickname(String(body.nickname)),
-        character_id: BASE_CHARACTERS.includes(String(body.character_id)) ? String(body.character_id) : 'green-slime',
+        character_id: BASE_CHARACTERS.includes(String(body.character_id)) ? String(body.character_id) : 'human-boy',
         parent_id: me.user.id,
       },
     })

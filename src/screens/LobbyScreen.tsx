@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { SfxName } from '../audio/sfx'
 import { CharacterSprite } from '../characters/CharacterSprite'
-import { getCharacter } from '../characters/roster'
+import type { CharacterDef } from '../characters/roster'
 import { CornerButton } from '../components/CornerButton'
 import { Ground } from '../components/Ground'
 import { Overlay } from '../components/Overlay'
@@ -20,6 +20,7 @@ import './LobbyScreen.css'
 
 interface LobbyScreenProps {
   profile: PlayerIdentity
+  character: CharacterDef
   view: WalletView
   outfit: readonly string[]
   onChangeCharacter: () => void
@@ -46,8 +47,7 @@ const PLACE_SPRITES: Record<LobbyPlaceId, SpriteDef> = {
 }
 
 /** The player's home base: a small pixel village with entrances to future features. */
-export function LobbyScreen({ profile, view, outfit, onChangeCharacter, onOpenMap, onOpenShop, onOpenLocker, onOpenBoard, onAccount, storageNote = DEMO_NOTE, onHome, play, reducedMotion }: LobbyScreenProps) {
-  const character = getCharacter(profile.characterId)
+export function LobbyScreen({ profile, character, view, outfit, onChangeCharacter, onOpenMap, onOpenShop, onOpenLocker, onOpenBoard, onAccount, storageNote = DEMO_NOTE, onHome, play, reducedMotion }: LobbyScreenProps) {
   const [open, setOpen] = useState<LobbyPlaceId | null>(null)
   const [cheering, setCheering] = useState(!reducedMotion)
   const cheerTimer = useRef<number | undefined>(undefined)

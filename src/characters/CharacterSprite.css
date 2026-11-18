@@ -7,6 +7,41 @@
   flex: none;
   width: calc(var(--w) * var(--cell, 4px));
   height: calc(var(--h) * var(--cell, 4px));
+  /* Companions stand beside the avatar: keep room for them. */
+  margin-inline-start: calc(var(--extra, 0) * var(--cell, 4px));
+}
+
+/* Mythic trim shimmers through colours; Diamond and Mythic items sparkle. */
+.char__mythic {
+  animation: char-mythic 2.4s linear infinite;
+}
+@keyframes char-mythic {
+  0% { fill: #ff7ad9; }
+  25% { fill: #ffd34d; }
+  50% { fill: #7ef0ff; }
+  75% { fill: #b57bff; }
+  100% { fill: #ff7ad9; }
+}
+.char[data-aura] .char__sparkles {
+  visibility: visible;
+}
+.char[data-aura] .char__spark {
+  animation: char-aura-spark 1.8s steps(2, end) infinite;
+  fill: #b9f6ff;
+}
+.char[data-aura='6'] .char__spark {
+  fill: #ffe86b;
+}
+.char[data-aura] .char__spark:nth-child(2) { animation-delay: 0.45s; }
+.char[data-aura] .char__spark:nth-child(3) { animation-delay: 0.9s; }
+.char[data-aura] .char__spark:nth-child(4) { animation-delay: 1.35s; }
+@keyframes char-aura-spark {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+[data-motion='reduced'] .char__mythic,
+[data-motion='reduced'] .char[data-aura] .char__spark {
+  animation: none;
 }
 
 .char__body {

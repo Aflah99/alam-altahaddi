@@ -1,6 +1,6 @@
+import { characterOf } from '../cloud/useCloudGame'
 import { useEffect, useState } from 'react'
 import { CharacterSprite } from '../characters/CharacterSprite'
-import { getCharacter, isCharacterId } from '../characters/roster'
 import { arabicError, supabase } from '../cloud/client'
 import { ar } from '../quiz/format'
 import { Bars } from './Bars'
@@ -85,7 +85,7 @@ export function ParentChildDashboard({ kids, childId, onPick }: { kids: ChildRow
         <>
           <div className="area__card area__row" style={{ gap: 14 }}>
             <span style={{ ['--cell' as string]: '3px' }}>
-              <CharacterSprite character={getCharacter(isCharacterId(child.character_id) ? child.character_id : 'green-slime')} anim="still" decorative />
+              <CharacterSprite character={characterOf(child.character_id, (child as { appearance?: unknown }).appearance)} anim="still" decorative />
             </span>
             <div>
               <strong>{child.nickname}</strong>
@@ -168,7 +168,82 @@ export function ParentChildDashboard({ kids, childId, onPick }: { kids: ChildRow
           )}
         </>
       )}
+      <ChildControls key={child.id} studentId={child.id} />
     </>
+  )
+}
+
+interface Economy {
+  controls: { packages_allowed: boolean; packages_daily_limit: number; multiplayer_allowed: boolean; reactions_allowed: boolean }
+  coins: number
+  upgrade_points: number
+  spent_on_packages: number
+  spent_in_shop: number
+  items: number
+  packages: { at: string; name: string; price: number; rewards: number }[]
+}
+
+/** Parent controls: surprise packages, multiplayer rooms and reactions, plus the coin history. */
+function ChildControls({ studentId }: { studentId: string }) {
+  const [eco, setEco] = useState<Economy | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const load = () =>
+    supabase()
+      ?.rpc('parent_child_economy', { p_student: studentId })
+      .then(({ data, error: e }) => (e ? setMsg(arabicError(e)) : setEco(data as Economy)))
+  useEffect(() => {
+    void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId])
+  const save = async (patch: Partial<Economy['controls']>) => {
+    const { error: e } = (await supabase()?.rpc('parent_set_controls', { p_student: studentId, p: patch })) ?? {}
+    setMsg(e ? arabicError(e) : 'حُفظ الإعداد.')
+    void load()
+  }
+  if (!eco) return msg ? <p className="area__error">{msg}</p> : null
+  const c = eco.controls
+  return (
+    <div className="area__card" data-testid="child-controls">
+      <h2 className="area__h2" style={{ marginTop: 0 }}>الضوابط والعملات</h2>
+      <p className="area__muted">
+        العملات تُكسب من الإجابات الصحيحة فقط، ولا يوجد أي شراء بمال حقيقي. صناديق المفاجآت تُفتح بالعملات، ومحتواها يحدّده الخادم.
+      </p>
+      <label className="area__check">
+        <input type="checkbox" checked={c.packages_allowed} onChange={(e) => void save({ packages_allowed: e.target.checked })} /> السماح بفتح صناديق المفاجآت
+      </label>
+      <label>
+        الحدّ الأقصى للصناديق يوميًّا{' '}
+        <select value={c.packages_daily_limit} onChange={(e) => void save({ packages_daily_limit: Number(e.target.value) })}>
+          {[0, 1, 2, 3, 5, 10, 20].map((n) => (
+            <option key={n} value={n}>
+              {ar(n)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="area__check">
+        <input type="checkbox" checked={c.multiplayer_allowed} onChange={(e) => void save({ multiplayer_allowed: e.target.checked })} /> السماح بغرف التحدّي الجماعية
+      </label>
+      <label className="area__check">
+        <input type="checkbox" checked={c.reactions_allowed} onChange={(e) => void save({ reactions_allowed: e.target.checked })} /> السماح بالرسائل الجاهزة والرموز في الغرف
+      </label>
+      {msg && <p className="area__muted" role="status">{msg}</p>}
+      <div className="area__grid">
+        <Stat value={ar(eco.coins)} label="عملات حالية" />
+        <Stat value={ar(eco.upgrade_points)} label="نقاط التطوير" />
+        <Stat value={ar(eco.spent_in_shop)} label="أُنفقت في المتجر" />
+        <Stat value={ar(eco.spent_on_packages)} label="أُنفقت على الصناديق" />
+      </div>
+      {eco.packages.length > 0 && (
+        <ul className="area__list">
+          {eco.packages.map((p, i) => (
+            <li key={i}>
+              {new Date(p.at).toLocaleDateString('ar')} — {p.name}: {ar(p.price)} عملة، {ar(p.rewards)} مكافآت
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
