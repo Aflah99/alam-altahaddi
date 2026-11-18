@@ -138,7 +138,7 @@ async function session(u) {
 async function handleAuth(req, res, path, url) {
   const body = req.method === 'GET' || req.method === 'DELETE' ? {} : await jsonBody(req)
   if (path === '/token' && url.searchParams.get('grant_type') === 'password') {
-    const r = await pool.query(`select * from auth.users where lower(email) = lower($1) and encrypted_password = crypt($2, encrypted_password)`, [body.email ?? '', body.password ?? ''])
+    const r = await pool.query(`select * from auth.users where lower(email) = lower($1) and encrypted_password = extensions.crypt($2, encrypted_password)`, [body.email ?? '', body.password ?? ''])
     if (!r.rows[0]) return send(res, 400, { error: 'invalid_grant', error_description: 'Invalid login credentials', msg: 'Invalid login credentials', code: 'invalid_credentials' })
     return send(res, 200, await session(r.rows[0]))
   }
@@ -152,7 +152,7 @@ async function handleAuth(req, res, path, url) {
     if (!body.email || !body.password || String(body.password).length < 6) return send(res, 422, { code: 'weak_password', msg: 'Password too short' })
     try {
       const r = await pool.query(
-        `insert into auth.users (email, encrypted_password, raw_user_meta_data, email_confirmed_at) values ($1, crypt($2, gen_salt('bf')), $3, now()) returning *`,
+        `insert into auth.users (email, encrypted_password, raw_user_meta_data, email_confirmed_at) values ($1, extensions.crypt($2, extensions.gen_salt('bf')), $3, now()) returning *`,
         [body.email, body.password, JSON.stringify(body.data ?? {})],
       )
       return send(res, 200, await session(r.rows[0]))
@@ -170,7 +170,7 @@ async function handleAuth(req, res, path, url) {
     const c = claimsOf(req)
     const u = c.sub && (await userRow(c.sub))
     if (!u) return send(res, 401, { code: 'bad_jwt', msg: 'invalid JWT' })
-    if (req.method === 'PUT' && body.password) await pool.query(`update auth.users set encrypted_password = crypt($2, gen_salt('bf')) where id = $1`, [u.id, body.password])
+    if (req.method === 'PUT' && body.password) await pool.query(`update auth.users set encrypted_password = extensions.crypt($2, extensions.gen_salt('bf')) where id = $1`, [u.id, body.password])
     return send(res, 200, userJson(await userRow(u.id)))
   }
   // Admin API (service role only)
@@ -180,7 +180,7 @@ async function handleAuth(req, res, path, url) {
     if (req.method === 'POST') {
       try {
         const r = await pool.query(
-          `insert into auth.users (email, encrypted_password, raw_app_meta_data, raw_user_meta_data, email_confirmed_at) values ($1, crypt($2, gen_salt('bf')), $3, $4, now()) returning *`,
+          `insert into auth.users (email, encrypted_password, raw_app_meta_data, raw_user_meta_data, email_confirmed_at) values ($1, extensions.crypt($2, extensions.gen_salt('bf')), $3, $4, now()) returning *`,
           [body.email, body.password, JSON.stringify(body.app_metadata ?? {}), JSON.stringify(body.user_metadata ?? {})],
         )
         return send(res, 200, userJson(r.rows[0]))
@@ -189,7 +189,7 @@ async function handleAuth(req, res, path, url) {
       }
     }
     if (req.method === 'PUT' && id) {
-      if (body.password) await pool.query(`update auth.users set encrypted_password = crypt($2, gen_salt('bf')) where id = $1`, [id, body.password])
+      if (body.password) await pool.query(`update auth.users set encrypted_password = extensions.crypt($2, extensions.gen_salt('bf')) where id = $1`, [id, body.password])
       const u = await userRow(id)
       return u ? send(res, 200, userJson(u)) : send(res, 404, { msg: 'not found' })
     }
