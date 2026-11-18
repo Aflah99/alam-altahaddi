@@ -5,46 +5,46 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
 ## Architecture (one screen)
 - Frontend: React 19 + Vite + TS, static on GitHub Pages (`/alam-altahaddi/`). Guest mode works with no backend.
 - Backend: Supabase project `alam-altahaddi` (ref `huaaocsahissfbpltcyn`, Tokyo, Postgres 17).
-  - `supabase/migrations/` (7 files, applied in order): accounts → content → game → legacy_content (600 Qs) → admin_ai → parents_groups → hardening.
-  - All game logic is in SECURITY DEFINER RPCs; RLS on every table.
-  - Edge Functions in `supabase/functions/`: `parent-children` (child accounts), `ai-worker` (textbook → draft questions with Claude).
-- Browser receives only `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY` (GitHub Actions *variables*).
+  - `supabase/migrations/` (10 files, all applied): accounts → content → game → legacy_content (600 Qs) → admin_ai →
+    parents_groups → hardening → api_grants → function_grants → student_meta_update.
+  - All game logic is in SECURITY DEFINER RPCs (fixed `search_path`); RLS on every table.
+  - Edge Functions: `parent-children` (v2, child accounts), `ai-worker` (v1, disabled path). Both `verify_jwt`.
+- Browser receives only `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY` (deploy workflow fallback; repo variables override).
 - Details: `docs/backend/ARCHITECTURE.md`, `DATABASE.md`, `PRIVACY.md`, `OWNER-SETUP.md`.
 
-## Completed
-- Tasks 01–06: game, world, quiz, 600-question bank (27 lessons), XP/coins/shop/locker (PRs #1–#8).
-- Tasks 07–09 code: backend, admin + AI generation, parent dashboards, private groups (PRs #9–#11).
-- Real-project fixes found by synthetic-account testing (PRs #12–#16):
-  pgcrypto in the `extensions` schema; explicit table grants (0800) and function grants (0900),
-  because current Supabase gives the API roles no automatic grants; children created by Supabase
-  Auth (insert first, then an `app_metadata` update) now become students (1000). The test shim
-  matches these real defaults.
-- Real Supabase: migrations 0100–1000 applied and verified. Privileges match the local tested
-  setup exactly (anon: no table access). 600 published questions, 27 lessons, 4 academic flags
-  open, AI disabled. Edge Functions `parent-children` and `ai-worker` deployed (verify_jwt on).
-- `scripts/e2e/real-api-check.mjs`: 40/40 checks pass on the real project (roles, isolation,
-  rewards, replay, shop, groups, publishing, AI lock). Browser journeys against the real backend
-  pass at 5 device sizes.
+## Completed (Tasks 01–09, go-live)
+- Tasks 01–09 code (PRs #1–#11); real-project fixes (PRs #12–#16); go-live config (#17).
+- PR #18: Auth on the real project requires lower + upper + digit + symbol passwords. The site and
+  `parent-children` now check the same rule (`passwordProblem`) with an Arabic message and hint.
+- Real-project verification (2026-11-18), synthetic accounts only:
+  - DB: 34 tables, all RLS; 600 published questions, 2,400 options, exactly 4 options and 1 correct each;
+    4 units, 27 lessons, 73 missions, 15 shop items; 4 academic flags open; no unvalidated constraints;
+    `textbooks` bucket private (admin-only read/insert/delete); temporary `http` extension removed.
+  - `scripts/e2e/real-api-check.mjs` 40/40 and `scripts/e2e/real-api-extra.mjs` 42/42 pass (roles, isolation,
+    server rewards, replay, shop, groups, invite revoke/expiry, rate limit, hidden children, legacy import,
+    textbook storage, deletion requests, Edge Function auth + CORS, AI lock).
+  - Live site at 5 sizes (375×667, 390×844, 430×932, 768×1024, 1194×834): guest start, sign-in/sign-up,
+    student lobby + groups + session persistence, parent and admin dashboards; RTL, Cairo, no overflow,
+    no failed assets, real project in use, no secrets in the bundle.
+- Synthetic accounts and all their data deleted afterwards (project has 0 users).
 
-## Active task — go live with cloud mode (Tasks 07–09 deployment)
-1. Merge the deploy-config PR: the deploy workflow falls back to the public project URL and
-   publishable key (no tool here sets GitHub variables; repository variables override them).
-2. Verify the live site at 5 sizes; the guest regression must still pass.
-3. Owner signs up on the live site, then `select public.grant_admin('<owner email>')` for that exact account.
-4. Delete the synthetic accounts (`synthetic.*@alam-test.invalid`, `syn_*@students…`) and their data.
+## Security advisor notes (deliberate)
+- `authenticated_security_definer_function_executable` (50): intended API RPCs; each checks the caller's role inside.
+- `rls_enabled_no_policy` on `group_join_attempts`: server-only table, written by `join_group_with_code`.
+- Performance INFO (unindexed FKs, duplicate permissive SELECT policies): negligible at this scale.
 
-## Deployment status
-- Live: https://aflah99.github.io/alam-altahaddi/. Becomes cloud-enabled once step 1 is merged.
-- Supabase project `huaaocsahissfbpltcyn`; Site URL and redirect URLs set by the owner and verified.
-- Deploy workflow: `.github/workflows/deploy.yml` on push to `main`. PR checks: `.github/workflows/ci.yml`.
-
-## Outstanding problems / owner items
-- Anthropic key not set. AI generation stays disabled until the owner adds `ANTHROPIC_API_KEY` as an Edge Function secret and authorises spending.
-- Auth email: built-in Supabase email reaches only the project team. Real parents need custom SMTP.
-- Legal review of `PRIVACY.md` before real families use the site.
-- The old `api.supabase.com` network secret in the cloud environment is invalid (401). Unused; the owner can delete it.
+## Owner items (blocking or before real families)
+1. **First admin**: sign up as a parent on the live site, confirm the email, then ask Claude to run
+   `select public.grant_admin('<email>')` — only after checking `auth.users.email_confirmed_at` is set.
+2. **Custom SMTP** (Supabase → Authentication → Emails → SMTP): built-in email reaches only project team members.
+3. **Leaked-password protection** (Authentication → Passwords) — advisor warning; may need a paid plan.
+4. **Legal/privacy review** of `PRIVACY.md` before real children and families use the site.
+5. AI generation stays disabled (no `ANTHROPIC_API_KEY`, no spending authorised).
+6. The old `api.supabase.com` network secret in the cloud environment is invalid (401); unused, can be deleted.
 
 ## Testing quick reference
 - `npm run typecheck && npm run lint && npm test && npm run build`
 - `npm run test:db` (local Postgres; see `scripts/db/reset-local.sh`). Run it when `supabase/` changes.
+- Real project: create synthetic accounts, then `SUPABASE_URL=… SUPABASE_PUBLISHABLE_KEY=… CREDS=creds.json node scripts/e2e/real-api-check.mjs`
+  (and `real-api-extra.mjs`); passwords must satisfy the Auth policy. Delete the accounts afterwards.
 - Local cloud stack for browser journeys: `bash scripts/e2e/start-local-stack.sh` (test-only emulator, not Supabase).
