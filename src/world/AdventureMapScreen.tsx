@@ -13,6 +13,8 @@ import './AdventureMapScreen.css'
 
 interface AdventureMapScreenProps {
   character: CharacterDef
+  /** Equipped cosmetic ids. */
+  outfit?: readonly string[]
   onEnter: (subject: SubjectId) => void
   onBack: () => void
 }
@@ -21,7 +23,7 @@ interface AdventureMapScreenProps {
  * World selection. Each configured subject gets a portal on the island; the
  * locked islands in the sky are scenery only (no names, not interactive).
  */
-export function AdventureMapScreen({ character, onEnter, onBack }: AdventureMapScreenProps) {
+export function AdventureMapScreen({ character, outfit, onEnter, onBack }: AdventureMapScreenProps) {
   const [selected, setSelected] = useState<SubjectId>(SUBJECTS[0].id)
   const subject = SUBJECTS.find((s) => s.id === selected) ?? SUBJECTS[0]
 
@@ -73,7 +75,7 @@ export function AdventureMapScreen({ character, onEnter, onBack }: AdventureMapS
                   </PixelSprite>
                 </button>
               ))}
-              <CharacterSprite character={character} className="amap__hero" />
+              <CharacterSprite character={character} outfit={outfit} className="amap__hero" />
             </div>
           </div>
 

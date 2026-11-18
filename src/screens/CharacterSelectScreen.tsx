@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useMemo, useEffect, useRef, useState } from 'react'
 import type { SfxName } from '../audio/sfx'
 import { CharacterPreview } from '../characters/CharacterPreview'
 import { ROSTER, type CharacterId } from '../characters/roster'
@@ -16,12 +16,21 @@ interface CharacterSelectScreenProps {
   onBack: () => void
   play: (name: SfxName) => void
   reducedMotion: boolean
+  /** Characters this player may pick (the base four plus shop unlocks). */
+  available: readonly CharacterId[]
+  /** Equipped cosmetics, shown on the preview. */
+  outfit?: readonly string[]
 }
 
 const CELEBRATE_MS = 1000
 
-export function CharacterSelectScreen({ profile, onConfirm, onBack, play, reducedMotion }: CharacterSelectScreenProps) {
-  const [index, setIndex] = useState(() => Math.max(0, ROSTER.findIndex((c) => c.id === profile?.characterId)))
+export function CharacterSelectScreen({ profile, onConfirm, onBack, play, reducedMotion, available, outfit }: CharacterSelectScreenProps) {
+  // Never hide the character the player already uses, even if its unlock record is missing.
+  const roster = useMemo(
+    () => ROSTER.filter((c) => available.includes(c.id) || c.id === profile?.characterId),
+    [available, profile?.characterId],
+  )
+  const [index, setIndex] = useState(() => Math.max(0, roster.findIndex((c) => c.id === profile?.characterId)))
   const [direction, setDirection] = useState<'next' | 'prev' | null>(null)
   const [nickname, setNickname] = useState(profile?.nickname ?? '')
   const [showError, setShowError] = useState(false)
@@ -31,18 +40,18 @@ export function CharacterSelectScreen({ profile, onConfirm, onBack, play, reduce
   const cheerTimer = useRef<number | undefined>(undefined)
   const confirmTimer = useRef<number | undefined>(undefined)
 
-  const character = ROSTER[index]
+  const character = roster[index] ?? roster[0]
   const error = validateNickname(nickname)
 
   const browse = useCallback(
     (step: 1 | -1) => {
       if (leaving) return
-      setIndex((i) => (i + step + ROSTER.length) % ROSTER.length)
+      setIndex((i) => (i + step + roster.length) % roster.length)
       setDirection(step === 1 ? 'next' : 'prev')
       setCheering(false)
       play('move')
     },
-    [leaving, play],
+    [leaving, play, roster.length],
   )
 
   const cheer = useCallback(() => {
@@ -111,8 +120,9 @@ export function CharacterSelectScreen({ profile, onConfirm, onBack, play, reduce
         <div className="select__body">
           <CharacterPreview
             character={character}
+            outfit={outfit}
             index={index}
-            total={ROSTER.length}
+            total={roster.length}
             direction={direction}
             mood={cheering ? 'happy' : 'neutral'}
             onNext={() => browse(1)}
@@ -126,7 +136,7 @@ export function CharacterSelectScreen({ profile, onConfirm, onBack, play, reduce
                 {character.name}
                 <span className="visually-hidden">
                   {' '}
-                  — الشخصية {index + 1} من {ROSTER.length}
+                  — الشخصية {index + 1} من {roster.length}
                 </span>
               </h2>
               <p className="select__desc">{character.description}</p>

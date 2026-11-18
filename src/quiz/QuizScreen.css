@@ -460,6 +460,135 @@
   to { transform: translateY(380px) rotate(270deg); opacity: 0.2; }
 }
 
+/* ---------- Rewards ---------- */
+.results__rewards {
+  position: relative;
+  margin: 0 0 14px;
+  padding: 10px 12px 12px;
+  text-align: start;
+  color: var(--white);
+  background: #3a2a10;
+  background: linear-gradient(#4a3418, #2f2210);
+  box-shadow: inset 0 0 0 3px #ffd23f, 0 4px 0 var(--ink);
+}
+.results__rewards h3 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: #ffd23f;
+  text-align: center;
+}
+.results__reward-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 8px;
+  text-align: center;
+}
+.results__reward-list > div {
+  padding: 6px 4px;
+  background: rgb(255 255 255 / 0.08);
+}
+.results__reward-list dt {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.results__reward-list dd {
+  margin: 2px 0 0;
+  font-weight: 900;
+  font-size: 1.35rem;
+  color: #ffe14d;
+}
+.results__reward-list .coin-amount {
+  justify-content: center;
+}
+.results__bonus,
+.results__levelup {
+  margin: 0 0 8px;
+  padding: 4px 8px;
+  font-weight: 900;
+  text-align: center;
+  color: var(--ink);
+  background: #ffe14d;
+}
+.results__levelup {
+  background: #7dff8a;
+  animation: results-pop 0.5s steps(4, end) 2;
+}
+@keyframes results-pop {
+  50% { transform: scale(1.06); }
+}
+.results__small {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  text-align: center;
+  opacity: 0.85;
+}
+.results__level {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.results__level-label {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+.results__balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+  font-weight: 700;
+}
+.results__shop {
+  min-height: 44px;
+  margin-inline-start: auto;
+  padding: 0 14px;
+  border: 0;
+  font: inherit;
+  font-weight: 900;
+  color: var(--ink);
+  background: #ffd23f;
+  box-shadow: inset 0 0 0 2px var(--ink), 0 3px 0 var(--ink);
+  cursor: pointer;
+}
+.results__reward-note {
+  margin: 8px 0 0;
+  padding: 6px 8px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--ink);
+  background: #fff4c2;
+}
+/* Coins hop out of the panel when coins were earned. */
+.results__coins {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 0;
+  pointer-events: none;
+}
+.results__coins span {
+  position: absolute;
+  top: 10px;
+  left: calc(var(--i) * 15% + 8%);
+  font-size: 26px;
+  opacity: 0;
+  animation: coin-pop 1.1s steps(8, end) calc(var(--i) * 0.12s) 1 both;
+}
+@keyframes coin-pop {
+  0% { transform: translateY(20px); opacity: 0; }
+  30% { transform: translateY(-26px); opacity: 1; }
+  70% { transform: translateY(-34px); opacity: 1; }
+  100% { transform: translateY(-60px); opacity: 0; }
+}
+@media (max-width: 380px) {
+  .results__reward-list dd {
+    font-size: 1.1rem;
+  }
+}
+
 /* ---------- Review ---------- */
 .review__empty {
   margin: 10px 0;

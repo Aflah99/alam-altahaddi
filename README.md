@@ -4,7 +4,7 @@ An Arabic (RTL) educational pixel-art adventure game for Grade 8 students, built
 
 **Live site:** https://aflah99.github.io/alam-altahaddi/
 
-> Status: **Task 05** — start menu, character selection, lobby, adventure map, a playable side-scrolling world, and textbook-based quiz missions (ساحة التحدّي) for «ديني قيمي» behind the world portal.
+> Status: **Task 06** — start menu, character selection, lobby, adventure map, a playable side-scrolling world, textbook-based quiz missions (ساحة التحدّي) for «ديني قيمي», and an XP/coin reward system with a pixel-art shop (المتجر) and locker (الخزانة).
 
 ## Tech stack
 
@@ -29,7 +29,7 @@ npm run dev        # http://localhost:5173/alam-altahaddi/
 | `npm run build`     | Type-check and build into `dist/`     |
 | `npm run preview`   | Serve the production build locally    |
 | `npm run lint`      | Lint with oxlint                      |
-| `npm test`          | Unit tests (Vitest): physics, camera, routes, quiz engine, progress, **question-bank validation** |
+| `npm test`          | Unit tests (Vitest): physics, camera, routes, quiz engine, progress, rewards/shop/locker, **question-bank validation** |
 | `npm run report:coverage` | Regenerate the question-bank coverage report in `docs/question-bank/` |
 
 ## Project structure
@@ -40,12 +40,19 @@ public/                        Files copied as-is (favicon)
 src/
   assets/tiles/                Pixel-art tiles (grass, dirt, path, sky dither, horizon)
   audio/sfx.ts                 Optional synthesised sound effects (off by default)
-  characters/                  Character roster data, CharacterSprite (shared animations), CharacterPreview
+  characters/                  Character roster, CharacterSprite (shared animations), CharacterPreview,
+                               cosmetics.ts (layered cosmetic art + per-character anchors)
   components/                  Shared UI: Sky, Ground, StartMenu, Overlay, SettingsPanel, PixelSprite, …
   content/                     Arabic text for menus, overlays and the lobby
+  economy/
+    config.ts                  Reward values, pass threshold, XP-per-level steps (edit here)
+    catalog.ts                 Shop items, categories and prices (edit here)
+    wallet.ts                  Idempotent reward/purchase ledger, equip, validation, storage (+ tests)
+    useWallet.ts, ui/          React hook; coin sprite and level bar
+  shop/                        ShopScreen (المتجر), LockerScreen (الخزانة)
   hooks/useSettings.ts         Device-saved settings (reduced motion, sound)
   lobby/                       Lobby building sprites and the LobbyPlace button
-  navigation/useHashRoute.ts   Hash routes: #/character, #/lobby, #/map, #/world/<subject>[/chapters], #/quiz/<subject>/<lesson>/<n>
+  navigation/useHashRoute.ts   Hash routes: #/character, #/lobby, #/shop[/category], #/locker, #/map, #/world/<subject>[/chapters], #/quiz/<subject>/<lesson>/<n>
   player/                      Local guest profile (id, character, nickname) and the nickname field
   questions/
     types.ts                   Typed question bank: Bank → Unit → Lesson → Question
@@ -115,9 +122,28 @@ World portal → lesson selection (units and lessons, each split into missions o
 - **Progress** (best score per mission, answered and missed questions, last lesson) is saved in `localStorage` under the local profile id. It is not synced; the record shape is designed to move to Supabase later.
 - Returning to the world places the player beside the portal.
 
+### Rewards, shop and locker
+
+Students earn XP and coins **only by answering real questions correctly** — no random chance, no real-money purchases.
+
+| Action | XP | Coins |
+| --- | ---: | ---: |
+| Correct on the first attempt without a hint | 10 | 10 |
+| Correct after a hint or on the retry | 5 | 5 |
+| Not answered correctly | 0 | 0 |
+| First completion of a mission with ≥ 70% first-attempt accuracy | 20 | 20 |
+
+- **Anti-farming:** every reward is a ledger transaction with a deterministic id (`q:<questionId>`, `m:<bank>:<mission>`, `buy:<item>`). Each question pays once per local profile, each mission bonus once; replays, double taps and reloads cannot add anything. Missions can still be repeated for revision.
+- **Levels:** level *n* → *n*+1 needs 50, 75, 100, … XP (`economy/config.ts`). XP is permanent; coins are spent in the shop.
+- **Results screen:** correct answers, XP and coins earned, current level with an animated progress bar, balance, and an explanation when nothing new was earned. Rewards start with new attempts; Task 05 history is not converted into rewards.
+- **Shop (المتجر):** 15 original items — 2 unlockable characters (البومة الحكيمة، السلحفاة الصبورة), 3 clothing items, 4 hats, 3 accessories, 3 bags — priced 50–200 coins. Purchases are confirmed; duplicate purchases and negative balances are impossible.
+- **Locker (الخزانة):** equip/unequip one item per slot and switch between unlocked characters. Items are drawn inside the character's own pixel grid (layers behind/over the body, clipped to the silhouette), so they stay aligned in the lobby, quiz arena, map and world, including walking, jumping and celebrations. Items that do not fit a character (glasses on the robot's screen, a scarf on the turtle) are marked «لا يناسب» and never drawn.
+- **Storage:** `localStorage` key `alam-altahaddi:wallet:v1:<profile id>` (the stable profile id, not the nickname). Data is validated on load; unreadable data is copied to a `:backup` key instead of being discarded. Learning progress from Task 05 is untouched.
+- **Limitations:** this is browser-local data. The device owner can edit or delete it, so it is **not** cheat-proof and must never be used for competitive leaderboards. The ledger shape is designed to be issued and verified by server-side functions later.
+
 ### Question content
 
-The «ديني قيمي» bank (600 published questions, 27 lessons in 4 units, from all 121 pages) was adapted by hand from the Grade 8 revision booklet (provided as two PDF files, pages 1–93 and 94–121). Only adapted multiple-choice questions, short hints and explanations are published — **the booklet itself is not in this repository** (`*.pdf` is git-ignored) and is not needed to build or deploy. Facts come only from the booklet; every question carries its PDF page number. Source questions that were ambiguous, wrong in the source, open-ended or image-based were excluded and recorded with a reason. See [the coverage report](docs/question-bank/religion-values-g8-coverage.md).
+The «ديني قيمي» bank (600 published questions, 27 lessons in 4 units, from all 121 pages) was adapted by hand from the Grade 8 revision booklet (provided as two PDF files, pages 1–93 and 94–121). Only adapted multiple-choice questions, short hints and explanations are published — **the booklet itself is not in this repository** (`*.pdf` is git-ignored) and is not needed to build or deploy. Facts come only from the booklet; every question carries its PDF page number. Source questions that were ambiguous, wrong in the source, open-ended or image-based were excluded and recorded with a reason. See [the coverage report](docs/question-bank/religion-values-g8-coverage.md) and the [unresolved academic review items](docs/question-bank/academic-review-items.md) (pages 26, 82, 119 and the Umrah ruling) awaiting teacher review.
 
 The bank is a static file bundled at build time. There are no runtime AI or API calls.
 

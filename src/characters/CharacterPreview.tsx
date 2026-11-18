@@ -6,6 +6,7 @@ import './CharacterPreview.css'
 
 interface CharacterPreviewProps {
   character: CharacterDef
+  outfit?: readonly string[]
   index: number
   total: number
   /** Which way the last change went, for the slide-in animation. */
@@ -22,7 +23,7 @@ const SWIPE_PX = 40
  * Big animated preview on a floating grass island, with previous/next arrows,
  * position dots and swipe support. In RTL the "next" arrow is on the left.
  */
-export function CharacterPreview({ character, index, total, direction, mood, onNext, onPrev, onCheer }: CharacterPreviewProps) {
+export function CharacterPreview({ character, outfit, index, total, direction, mood, onNext, onPrev, onCheer }: CharacterPreviewProps) {
   const start = useRef<{ x: number; y: number } | null>(null)
 
   return (
@@ -53,7 +54,7 @@ export function CharacterPreview({ character, index, total, direction, mood, onN
           onClick={onCheer}
           aria-label={`${character.name} — اضغط ليحتفل`}
         >
-          <CharacterSprite character={character} mood={mood} decorative />
+          <CharacterSprite character={character} mood={mood} outfit={outfit} decorative />
         </button>
         <div className="preview__island" aria-hidden="true" />
       </div>

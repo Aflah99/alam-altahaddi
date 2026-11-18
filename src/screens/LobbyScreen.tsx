@@ -12,14 +12,21 @@ import { MiniSlime, PlayArrow } from '../components/sprites'
 import { DEMO_NOTE, LOBBY_PLACES, type LobbyPlaceId } from '../content/lobby'
 import { LobbyPlace } from '../lobby/LobbyPlace'
 import { BUSH, PODIUM, PORTAL, PORTAL_SWIRL, STALL, TREE, WARDROBE, type SpriteDef } from '../lobby/lobbySprites'
+import { CoinAmount } from '../economy/ui/Coin'
+import { LevelBar } from '../economy/ui/LevelBar'
+import type { WalletView } from '../economy/wallet'
 import type { LocalPlayerProfile } from '../player/playerProfile'
 import './LobbyScreen.css'
 
 interface LobbyScreenProps {
   profile: LocalPlayerProfile
+  view: WalletView
+  outfit: readonly string[]
   onChangeCharacter: () => void
   /** خريطة المغامرة leads to the adventure map. */
   onOpenMap: () => void
+  onOpenShop: () => void
+  onOpenLocker: () => void
   onHome: () => void
   play: (name: SfxName) => void
   reducedMotion: boolean
@@ -33,7 +40,7 @@ const PLACE_SPRITES: Record<LobbyPlaceId, SpriteDef> = {
 }
 
 /** The player's home base: a small pixel village with entrances to future features. */
-export function LobbyScreen({ profile, onChangeCharacter, onOpenMap, onHome, play, reducedMotion }: LobbyScreenProps) {
+export function LobbyScreen({ profile, view, outfit, onChangeCharacter, onOpenMap, onOpenShop, onOpenLocker, onHome, play, reducedMotion }: LobbyScreenProps) {
   const character = getCharacter(profile.characterId)
   const [open, setOpen] = useState<LobbyPlaceId | null>(null)
   const [cheering, setCheering] = useState(!reducedMotion)
@@ -66,6 +73,8 @@ export function LobbyScreen({ profile, onChangeCharacter, onOpenMap, onHome, pla
   const openPlace = (id: LobbyPlaceId) => {
     play('confirm')
     if (id === 'map') onOpenMap()
+    else if (id === 'shop') onOpenShop()
+    else if (id === 'closet') onOpenLocker()
     else setOpen(id)
   }
 
@@ -78,10 +87,14 @@ export function LobbyScreen({ profile, onChangeCharacter, onOpenMap, onHome, pla
       <div className="lobby__ui" inert={open !== null}>
         <header className="lobby__hud">
           <div className="hud-card">
-            <CharacterSprite character={character} anim="still" className="hud-card__avatar" decorative />
+            <CharacterSprite character={character} outfit={outfit} anim="still" className="hud-card__avatar" decorative />
             <div className="hud-card__text">
               <strong className="hud-card__nick">{profile.nickname}</strong>
               <span className="hud-card__char">{character.name}</span>
+            </div>
+            <div className="hud-card__stats">
+              <LevelBar info={view.level} compact />
+              <CoinAmount value={view.coins} className="hud-card__coins" />
             </div>
             <span className="hud-card__demo">{DEMO_NOTE}</span>
           </div>
@@ -119,7 +132,7 @@ export function LobbyScreen({ profile, onChangeCharacter, onOpenMap, onHome, pla
             <div className="lobby__player" style={{ gridArea: 'player' }}>
               <span className="lobby__nametag">{profile.nickname}</span>
               <button type="button" className="lobby__hero" onClick={cheer} aria-label={`${character.name} — اضغط ليحتفل`}>
-                <CharacterSprite character={character} mood={cheering ? 'happy' : 'neutral'} decorative />
+                <CharacterSprite character={character} outfit={outfit} mood={cheering ? 'happy' : 'neutral'} decorative />
               </button>
               <PixelSprite rows={BUSH.rows} palette={BUSH.palette} className="lobby__bush lobby__bush--a" />
               <PixelSprite rows={BUSH.rows} palette={BUSH.palette} className="lobby__bush lobby__bush--b" />

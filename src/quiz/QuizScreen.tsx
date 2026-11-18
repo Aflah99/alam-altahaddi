@@ -25,6 +25,7 @@ import {
 } from './engine'
 import { OPTION_LETTERS, ar } from './format'
 import { MissionResults } from './MissionResults'
+import type { MissionReward } from '../economy/wallet'
 import { MistakeReview } from './MistakeReview'
 import { useQuestionBank } from './useQuestionBank'
 import './QuizScreen.css'
@@ -34,9 +35,16 @@ interface QuizScreenProps {
   lessonId: string
   missionNumber: number
   character: CharacterDef
+  /** Equipped cosmetic ids. */
+  outfit?: readonly string[]
   reducedMotion: boolean
   play: (name: SfxName) => void
   onRecord: (mission: MissionState, summary: MissionSummary) => void
+  /** Applies the finished mission's rewards (idempotent) and reports what was earned. */
+  onReward?: (mission: MissionState, summary: MissionSummary) => MissionReward
+  /** Times this mission was completed before this visit (Task 05 progress). */
+  previousCompletions?: number
+  onShop?: () => void
   onLessons: () => void
   onWorld: () => void
 }
@@ -78,12 +86,18 @@ function QuizArena({
   missionNumber,
   missionCount,
   character,
+  outfit,
   reducedMotion,
   play,
   onRecord,
+  onReward,
+  previousCompletions = 0,
+  onShop,
   onLessons,
   onWorld,
 }: QuizScreenProps & { lesson: Lesson; missionCount: number }) {
+  const [reward, setReward] = useState<MissionReward | null>(null)
+  const [legacy, setLegacy] = useState(false)
   const [mission, setMission] = useState<MissionState>(() => createMission(lesson, missionNumber, Date.now()))
   const [feedback, setFeedback] = useState<Feedback>('none')
   const [view, setView] = useState<View>('quiz')
@@ -141,6 +155,10 @@ function QuizArena({
       const s = summarize(m)
       setSummary(s)
       onRecord(m, s)
+      const r = onReward?.(m, s) ?? null
+      setReward(r)
+      // Completed before rewards existed: nothing on record for this mission yet.
+      setLegacy(!!r && previousCompletions > 0 && r.alreadyRewarded === 0 && !r.bonusEarlier)
       setView('results')
       play('confirm')
     }
@@ -155,6 +173,8 @@ function QuizArena({
     setMission(createMission(lesson, missionNumber, Date.now()))
     setFeedback('none')
     setSummary(null)
+    setReward(null)
+    setLegacy(false)
     setView('quiz')
   }
 
@@ -232,7 +252,7 @@ function QuizArena({
           <PixelSprite rows={PENNANT.rows} palette={PENNANT.palette} className="quiz__flag quiz__flag--a" />
           <PixelSprite rows={PENNANT.rows} palette={PENNANT.palette} className="quiz__flag quiz__flag--b" />
           <div className={`quiz__hero quiz__hero--${reaction}`}>
-            <CharacterSprite character={character} mood={reaction === 'happy' || (view === 'results' && (summary?.firstTryAccuracy ?? 0) >= 70) ? 'happy' : 'neutral'} decorative />
+            <CharacterSprite character={character} outfit={outfit} mood={reaction === 'happy' || (view === 'results' && (summary?.firstTryAccuracy ?? 0) >= 70) ? 'happy' : 'neutral'} decorative />
           </div>
           <Ground className="quiz__ground" />
         </aside>
@@ -316,6 +336,9 @@ function QuizArena({
               missionCount={missionCount}
               reviewQuestions={summary.review.map((id) => byId.get(id)!).filter(Boolean)}
               reducedMotion={reducedMotion}
+              reward={reward}
+              legacy={legacy}
+              onShop={onShop}
               onReview={() => setView('review')}
               onRetry={retry}
               onLessons={onLessons}

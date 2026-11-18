@@ -7,7 +7,7 @@
  * character blink, glance around and switch to a happy ^ ^ face.
  */
 
-export type CharacterId = 'green-slime' | 'blue-slime' | 'little-robot' | 'fox'
+export type CharacterId = 'green-slime' | 'blue-slime' | 'little-robot' | 'fox' | 'owl' | 'turtle'
 
 export interface CharacterDef {
   id: CharacterId
@@ -170,7 +170,71 @@ const FOX: CharacterDef = {
   eyeColor: EYE,
 }
 
-export const ROSTER: readonly CharacterDef[] = [GREEN_SLIME, BLUE_SLIME, LITTLE_ROBOT, FOX]
+const OWL: CharacterDef = {
+  id: 'owl',
+  name: 'البومة الحكيمة',
+  description: 'تسهر على كتبها وتحب الأسئلة الصعبة، وتشجّع أصدقاءها على التفكير.',
+  rows: [
+    '.OO..........OO.',
+    '.OBO........OBO.',
+    '.OBBOOOOOOOOBBO.',
+    'OBBBBBBBBBBBBBBO',
+    'OBWWWWBBBBWWWWBO',
+    'OWWWWWWBBWWWWWWO',
+    'OWWWWWWBBWWWWWWO',
+    'OWWWWWWBBWWWWWWO',
+    'OBWWWWBYYBWWWWBO',
+    'OBBBBBBYYBBBBBBO',
+    'OBBLLLLLLLLLLBBO',
+    'OBLLDLLDLLDLLLBO',
+    'OBLLLLLLLLLLLLBO',
+    '.OBLLDLLDLLDLBO.',
+    '..OBBBBBBBBBBO..',
+    '...OYYO..OYYO...',
+    '...OOOO..OOOO...',
+  ],
+  palette: { O: INK, B: '#8a5a3b', W: '#fff4e6', Y: '#ffb020', L: '#e8c9a0', D: '#b98b62' },
+  eyes: [
+    [4, 5],
+    [11, 5],
+  ],
+  eyeColor: EYE,
+}
+
+const TURTLE: CharacterDef = {
+  id: 'turtle',
+  name: 'السلحفاة الصبورة',
+  description: 'لا تستعجل أبدًا؛ تقرأ السؤال بتأنٍّ وتصل إلى الجواب الصحيح.',
+  rows: [
+    '......OOOOOO......',
+    '.....OGGGGGGO.....',
+    '....OGGGGGGGGO....',
+    '....OGGGGGGGGO....',
+    '....OGGGGGGGGO....',
+    '.....OGGPPGGO.....',
+    '...OOOOOOOOOOOO...',
+    '..OSSHSSSSSSHSSO..',
+    '.OSHHHSSSSSSHHHSO.',
+    'OGOSSSSHHHHSSSSOGO',
+    'OGOSSSSHHHHSSSSOGO',
+    '.OOSSHSSSSSSHSSOO.',
+    '..OYYYYYYYYYYYYO..',
+    '..OGGO......OGGO..',
+    '..OOOO......OOOO..',
+  ],
+  palette: { O: INK, G: '#6fd36a', S: '#3f8f4a', H: '#2f6b3a', Y: '#f2d68a', P: '#ff9ec0' },
+  eyes: [
+    [7, 2],
+    [10, 2],
+  ],
+  eyeColor: EYE,
+}
+
+/** Every character, including those unlocked in the shop. */
+export const ROSTER: readonly CharacterDef[] = [GREEN_SLIME, BLUE_SLIME, LITTLE_ROBOT, FOX, OWL, TURTLE]
+
+/** The original four characters: always available to every player, never locked. */
+export const BASE_CHARACTER_IDS: readonly CharacterId[] = ['green-slime', 'blue-slime', 'little-robot', 'fox']
 
 export function getCharacter(id: CharacterId): CharacterDef {
   return ROSTER.find((c) => c.id === id) ?? GREEN_SLIME

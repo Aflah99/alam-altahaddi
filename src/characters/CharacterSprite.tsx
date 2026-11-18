@@ -1,5 +1,6 @@
 import { useMemo, type CSSProperties } from 'react'
 import { pixelRects } from '../components/pixelRects'
+import { composeOutfit, type Cell } from './cosmetics'
 import type { CharacterDef } from './roster'
 import './CharacterSprite.css'
 
@@ -21,6 +22,14 @@ interface CharacterSpriteProps {
   className?: string
   /** Hide from assistive tech when the surrounding UI already names the character. */
   decorative?: boolean
+  /** Equipped cosmetic item ids. Items that do not fit this character are not drawn. */
+  outfit?: readonly string[]
+}
+
+const NO_OUTFIT: readonly string[] = []
+
+function cellRects(cells: readonly Cell[], prefix: string) {
+  return cells.map((c, i) => <rect key={`${prefix}${i}`} x={c.x} y={c.y} width={1} height={1} fill={c.c} />)
 }
 
 /**
@@ -33,11 +42,17 @@ export function CharacterSprite({
   mood = 'neutral',
   className = '',
   decorative = false,
+  outfit = NO_OUTFIT,
 }: CharacterSpriteProps) {
   const { rows, palette, eyes, eyeColor, name } = character
   const w = rows[0].length
   const h = rows.length
-  const body = useMemo(() => pixelRects(rows, palette), [rows, palette])
+  const outfitKey = outfit.join('|')
+  const layers = useMemo(() => composeOutfit(character, outfitKey ? outfitKey.split('|') : []), [character, outfitKey])
+  const body = useMemo(() => {
+    const hidden = new Set(layers.hideRows)
+    return pixelRects(hidden.size ? rows.map((r, y) => (hidden.has(y) ? '.'.repeat(r.length) : r)) : rows, palette)
+  }, [rows, palette, layers])
 
   return (
     <div
@@ -45,6 +60,7 @@ export function CharacterSprite({
       data-anim={anim}
       data-mood={mood}
       style={{ '--w': w, '--h': h } as CSSProperties}
+      data-outfit={outfitKey || undefined}
     >
       <span className="char__shadow" aria-hidden="true" />
       <svg
@@ -56,6 +72,7 @@ export function CharacterSprite({
         aria-hidden={decorative ? true : undefined}
         focusable="false"
       >
+        {layers.behind.length > 0 && <g className="char__behind">{cellRects(layers.behind, 'b')}</g>}
         {body}
         <g className="char__eyes">
           <g className="char__pupils">
@@ -73,6 +90,9 @@ export function CharacterSprite({
             </g>
           ))}
         </g>
+        {layers.front.length > 0 && <g className="char__front">{cellRects(layers.front, 'f')}</g>}
+        {layers.face.length > 0 && <g className="char__face">{cellRects(layers.face, 'g')}</g>}
+        {layers.over.length > 0 && <g className="char__over">{cellRects(layers.over, 'o')}</g>}
       </svg>
       <svg className="char__sparkles" viewBox="0 0 24 24" shapeRendering="crispEdges" aria-hidden="true">
         <path className="char__spark" d="M2 5h1v1h1v1H3v1H2V7H1V6h1z" />
