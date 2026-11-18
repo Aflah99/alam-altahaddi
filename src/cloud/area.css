@@ -276,3 +276,14 @@
   background: #5b45b0;
   border-color: #5b45b0;
 }
+.area__link-btn {
+  padding: 0;
+  border: 0;
+  font: inherit;
+  text-align: start;
+  color: #2a1d5c;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: #c9c0ea;
+}
