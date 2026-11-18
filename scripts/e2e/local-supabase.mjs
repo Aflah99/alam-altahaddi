@@ -179,9 +179,14 @@ async function handleAuth(req, res, path, url) {
     const id = path.split('/')[3]
     if (req.method === 'POST') {
       try {
+        // Like Supabase Auth: insert the user first, then write app_metadata in a second statement.
+        const ins = await pool.query(
+          `insert into auth.users (email, encrypted_password, raw_app_meta_data, raw_user_meta_data, email_confirmed_at) values ($1, extensions.crypt($2, extensions.gen_salt('bf')), '{"provider":"email","providers":["email"]}', $3, now()) returning id`,
+          [body.email, body.password, JSON.stringify(body.user_metadata ?? {})],
+        )
         const r = await pool.query(
-          `insert into auth.users (email, encrypted_password, raw_app_meta_data, raw_user_meta_data, email_confirmed_at) values ($1, extensions.crypt($2, extensions.gen_salt('bf')), $3, $4, now()) returning *`,
-          [body.email, body.password, JSON.stringify(body.app_metadata ?? {}), JSON.stringify(body.user_metadata ?? {})],
+          `update auth.users set raw_app_meta_data = raw_app_meta_data || $2::jsonb where id = $1 returning *`,
+          [ins.rows[0].id, JSON.stringify(body.app_metadata ?? {})],
         )
         return send(res, 200, userJson(r.rows[0]))
       } catch (e) {

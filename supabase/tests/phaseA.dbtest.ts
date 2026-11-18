@@ -273,3 +273,23 @@ describe('device-local history import', () => {
     expect(await rpc(s, 'get_my_game_state')).toMatchObject({ xp: 0, coins: 0, owned: [], legacy_imported: true })
   })
 })
+
+describe('accounts created like Supabase Auth admin createUser (insert, then app_metadata update)', () => {
+  it('a child created in two steps becomes a linked student, never a parent', async () => {
+    const parent = await createParent()
+    const username = `t_${Date.now().toString(36)}`.slice(0, 20)
+    const [u] = await root<{ id: string }>(`insert into auth.users (email, raw_app_meta_data) values ($1, '{"provider":"email"}') returning id`, [`${username}@students.alam-altahaddi.invalid`])
+    expect((await root('select role from public.profiles where id = $1', [u.id]))[0].role).toBe('parent')
+    await root(`update auth.users set raw_app_meta_data = $2 where id = $1`, [u.id, JSON.stringify({ provider: 'email', role: 'student', username, nickname: 'نجم', parent_id: parent })])
+    expect((await root('select role from public.profiles where id = $1', [u.id]))[0].role).toBe('student')
+    expect(await root('select username from public.student_profiles where id = $1', [u.id])).toEqual([{ username }])
+    expect(await root('select 1 from public.parent_children where parent_id = $1 and student_id = $2', [parent, u.id])).toHaveLength(1)
+    expect(await root('select 1 from public.parent_settings where parent_id = $1', [u.id])).toHaveLength(0)
+  })
+
+  it('an account already in use as a parent cannot be turned into a student', async () => {
+    const parent = await createParent()
+    await createStudent(parent)
+    await expect(root(`update auth.users set raw_app_meta_data = '{"role":"student","username":"x_takeover"}' where id = $1`, [parent])).rejects.toThrow(/account in use/)
+  })
+})
