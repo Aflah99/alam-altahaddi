@@ -52,7 +52,7 @@ const kidA = await signIn(`${kidAName}@${STUDENT_DOMAIN}`, creds.kidPass)
 const kidB = await signIn(`${kidBName}@${STUDENT_DOMAIN}`, creds.kidPass)
 check(true, 'children sign in with username (internal address) + password')
 {
-  const r = await parentA.functions.invoke('parent-children', { body: { action: 'reset_password', student_id: kB.student_id, password: 'x'.repeat(12) } })
+  const r = await parentA.functions.invoke('parent-children', { body: { action: 'reset_password', student_id: kB.student_id, password: 'Zz9!' + 'z'.repeat(8) } })
   check(!!r.error, 'parent cannot manage another family’s child')
   const r2 = await kidA.functions.invoke('parent-children', { body: { action: 'create', username: `syn_x_${tag}`, nickname: 'س', password: creds.kidPass } })
   check(!!r2.error, 'a student cannot create accounts')

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { useAuth, PASSWORD_MIN } from '../cloud/auth'
+import { PASSWORD_HINT, useAuth, passwordProblem } from '../cloud/auth'
 import { arabicError } from '../cloud/client'
 import { USERNAME_RE } from '../cloud/config'
 import { CornerButton } from '../components/CornerButton'
@@ -87,7 +87,8 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
   if (state.status === 'signed-in' && state.recovery) {
     const submit = (e: FormEvent) => {
       e.preventDefault()
-      if (password.length < PASSWORD_MIN) return setError(`كلمة المرور قصيرة؛ استخدم ${PASSWORD_MIN} أحرف على الأقل.`)
+      const pwProblem = passwordProblem(password)
+      if (pwProblem) return setError(pwProblem)
       if (password !== password2) return setError('كلمتا المرور غير متطابقتين.')
       void run(async () => {
         await auth.updatePassword(password)
@@ -98,6 +99,7 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
       <Shell onBack={onBack} title="كلمة مرور جديدة">
         <form className="acct__form" onSubmit={submit}>
           <Field label="كلمة المرور الجديدة" type="password" value={password} onChange={setPassword} autoComplete="new-password" />
+          <p className="acct__small">{PASSWORD_HINT}</p>
           <Field label="تأكيد كلمة المرور" type="password" value={password2} onChange={setPassword2} autoComplete="new-password" />
           <Status error={error} notice={notice} />
           <button type="submit" className="pixel-button acct__wide" disabled={busy}>
@@ -144,7 +146,8 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
       return
     }
     if (adultView === 'signup') {
-      if (password.length < PASSWORD_MIN) return setError(`كلمة المرور قصيرة؛ استخدم ${PASSWORD_MIN} أحرف على الأقل.`)
+      const pwProblem = passwordProblem(password)
+      if (pwProblem) return setError(pwProblem)
       if (password !== password2) return setError('كلمتا المرور غير متطابقتين.')
       if (!consent) return setError('يجب الموافقة على إشعار الخصوصية بوصفك ولي الأمر.')
       void run(async () => {
@@ -195,6 +198,7 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
           )}
           {adultView === 'signup' && (
             <>
+              <p className="acct__small">{PASSWORD_HINT}</p>
               <Field label="تأكيد كلمة المرور" type="password" value={password2} onChange={setPassword2} autoComplete="new-password" />
               <label className="acct__check">
                 <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />

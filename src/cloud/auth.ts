@@ -28,3 +28,15 @@ export function useAuth(): AuthApi {
 }
 
 export const PASSWORD_MIN = 8
+
+/** Same rule as the Supabase Auth policy of the production project (and passwordProblem in
+ *  supabase/functions/_shared/accounts.ts). Arabic message, or null when acceptable. */
+export function passwordProblem(password: string): string | null {
+  if (password.length < PASSWORD_MIN) return `كلمة المرور قصيرة؛ استخدم ${PASSWORD_MIN} أحرف على الأقل.`
+  if (password.length > 72) return 'كلمة المرور طويلة جدًّا.'
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password))
+    return 'كلمة المرور يجب أن تحتوي حرفًا إنجليزيًّا صغيرًا وحرفًا كبيرًا ورقمًا ورمزًا مثل ! أو #.'
+  return null
+}
+
+export const PASSWORD_HINT = '٨ أحرف على الأقل: حرف إنجليزي صغير وكبير ورقم ورمز.'

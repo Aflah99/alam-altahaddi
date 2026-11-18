@@ -10,6 +10,16 @@ export const BASE_CHARACTERS = ['green-slime', 'blue-slime', 'little-robot', 'fo
 
 export type Check = { ok: true } | { ok: false; error: string }
 
+/** Matches the Supabase Auth policy of the production project (length 8+, lower, upper, digit, symbol).
+ *  Must match passwordProblem in src/cloud/auth.ts. Returns an Arabic message, or null when acceptable. */
+export function passwordProblem(password: string): string | null {
+  if (password.length < PASSWORD_MIN) return `كلمة المرور قصيرة؛ استخدم ${PASSWORD_MIN} أحرف على الأقل.`
+  if (password.length > 72) return 'كلمة المرور طويلة جدًّا.'
+  if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password))
+    return 'كلمة المرور يجب أن تحتوي حرفًا إنجليزيًّا صغيرًا وحرفًا كبيرًا ورقمًا ورمزًا مثل ! أو #.'
+  return null
+}
+
 export function normalizeNickname(raw: string): string {
   return String(raw ?? '').replace(/\s+/gu, ' ').trim()
 }
@@ -21,8 +31,8 @@ export function checkChildInput(input: { username?: unknown; nickname?: unknown;
   if (!USERNAME_RE.test(username)) return { ok: false, error: 'اسم الدخول من ٣ إلى ٢٠ حرفًا إنجليزيًّا صغيرًا أو رقمًا أو شرطة سفلية.' }
   if ([...nickname].length < 2 || [...nickname].length > 12 || !/^[\p{L}\p{N}_ ]+$/u.test(nickname))
     return { ok: false, error: 'اللقب من حرفين إلى ١٢ حرفًا (حروف وأرقام فقط).' }
-  if (password.length < PASSWORD_MIN) return { ok: false, error: `كلمة المرور قصيرة؛ استخدم ${PASSWORD_MIN} أحرف على الأقل.` }
-  if (password.length > 72) return { ok: false, error: 'كلمة المرور طويلة جدًّا.' }
+  const pw = passwordProblem(password)
+  if (pw) return { ok: false, error: pw }
   if (password.toLowerCase().includes(username)) return { ok: false, error: 'لا تجعل كلمة المرور تحتوي اسم الدخول.' }
   if (input.character_id !== undefined && !BASE_CHARACTERS.includes(String(input.character_id)))
     return { ok: false, error: 'شخصية غير متاحة.' }
