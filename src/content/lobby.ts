@@ -11,20 +11,14 @@ export const LOBBY_PLACES: Record<LobbyPlaceId, { label: string; info: InfoConte
     info: { title: 'خريطة المغامرة', paragraphs: [], status: '' },
   },
   closet: {
+    // Opens the locker screen (no info panel).
     label: 'الخزانة',
-    info: {
-      title: 'الخزانة',
-      paragraphs: ['هنا ستتمكّن لاحقًا من تخصيص شخصيتك وتغيير مظهرها.'],
-      status: 'الخزانة غير متاحة بعد، وستُضاف في مهمة قادمة.',
-    },
+    info: { title: 'الخزانة', paragraphs: [], status: '' },
   },
   shop: {
+    // Opens the shop screen (no info panel).
     label: 'المتجر',
-    info: {
-      title: 'المتجر',
-      paragraphs: ['هنا ستستخدم لاحقًا العملات التي تكسبها من التعلّم لشراء أغراض لشخصيتك.'],
-      status: 'المتجر مغلق حاليًا، ولا توجد عملات أو مشتريات بعد.',
-    },
+    info: { title: 'المتجر', paragraphs: [], status: '' },
   },
   board: {
     label: 'المتصدرون',

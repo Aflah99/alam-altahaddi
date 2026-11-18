@@ -1,0 +1,422 @@
+/* Shop (المتجر) and locker (الخزانة): a retro wooden item shop. */
+.shopx {
+  --wood: #8a5530;
+  --wood-dark: #5e3519;
+  --wood-light: #b4743f;
+  --plank: #6b3f20;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  color: var(--white);
+  /* Pixel wooden wall: planks with dark seams. */
+  background:
+    repeating-linear-gradient(180deg, transparent 0 46px, var(--wood-dark) 46px 50px),
+    repeating-linear-gradient(90deg, transparent 0 118px, rgb(0 0 0 / 0.12) 118px 122px),
+    var(--wood);
+}
+.shopx--locker {
+  --wood: #6c4f8f;
+  --wood-dark: #47326a;
+  --wood-light: #8e6fb5;
+  --plank: #3d2a5d;
+}
+.shopx__scroll {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding:
+    env(safe-area-inset-top)
+    max(12px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+
+/* ---------- Header ---------- */
+.shopx__header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding-top: 10px;
+}
+.shopx__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 0;
+  font-weight: 900;
+  font-size: clamp(1.5rem, min(6.5vw, 5dvh), 2.4rem);
+  line-height: 1.3;
+  text-shadow: var(--pixel-outline), 0 5px 0 var(--ink);
+}
+.shopx__title-art {
+  height: 1.3em;
+  width: auto;
+}
+.shopx__balance {
+  padding: 6px 12px;
+  font-size: 1.15rem;
+  color: var(--ink);
+  background: #fff4c2;
+  box-shadow: inset 0 0 0 3px var(--ink), 0 4px 0 var(--ink);
+}
+@media (max-width: 420px) {
+  .shopx__title-art {
+    display: none;
+  }
+  .shopx__header {
+    gap: 6px;
+  }
+  .shopx__balance {
+    font-size: 1rem;
+    padding: 5px 8px;
+  }
+}
+
+/* ---------- Layout: preview + catalogue ---------- */
+.shopx__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  width: min(100%, 1100px);
+  margin: 10px auto 0;
+}
+@media (min-width: 760px), (orientation: landscape) and (min-width: 600px) {
+  .shopx__layout {
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.4fr);
+    align-items: start;
+  }
+  .shopx__stage {
+    position: sticky;
+    top: 8px;
+  }
+}
+
+.shopx__layout > * {
+  min-width: 0;
+}
+.shopx__stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: rgb(42 29 92 / 0.88);
+  box-shadow: inset 0 0 0 3px var(--white), 0 5px 0 var(--ink);
+}
+.shopx__preview {
+  --cell: clamp(6px, min(2.4vw, 1.8dvh), 11px);
+  display: grid;
+  place-items: end center;
+  /* Room above the character for hats. */
+  min-height: calc(var(--cell) * 30);
+  padding-bottom: calc(var(--cell) * 1.5);
+  background:
+    linear-gradient(transparent 78%, #3fae4c 78% 82%, #2b7d36 82%),
+    linear-gradient(var(--sky-2), var(--sky-5));
+  box-shadow: inset 0 0 0 3px var(--ink);
+}
+.shopx__preview--big {
+  --cell: clamp(7px, min(2.8vw, 2.1dvh), 13px);
+}
+.shopx__details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.shopx__name {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 900;
+}
+.shopx__sub {
+  font-size: 0.95rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+.shopx__desc,
+.shopx__hint,
+.shopx__note {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.shopx__hint {
+  color: #ffe14d;
+  font-weight: 700;
+}
+.shopx__warn {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--ink);
+  background: #ffd9a8;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.shopx__buy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.shopx__buy .pixel-button {
+  margin-top: 0;
+}
+.shopx__buy-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.shopx__price {
+  font-size: 1.4rem;
+  color: #ffe14d;
+  text-shadow: 0 3px 0 var(--ink);
+}
+.shopx__owned {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #7dff8a;
+}
+.shopx__confirm {
+  display: block;
+  margin: 10px auto 0;
+}
+.shopx__bought-art {
+  --cell: 7px;
+  display: grid;
+  place-items: end center;
+  min-height: calc(var(--cell) * 26);
+}
+.shopx__note {
+  margin-top: 12px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  background: rgb(42 29 92 / 0.6);
+}
+.shopx__worn {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 10px;
+  font-size: 0.9rem;
+}
+.shopx__worn-slot {
+  font-weight: 900;
+  color: #ffe14d;
+}
+.shopx__worn-hidden {
+  color: #ffd9a8;
+}
+
+/* ---------- Tabs ---------- */
+.shopx__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 6px;
+  padding: 4px 2px 8px;
+}
+.shopx__tab {
+  flex: none;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 0;
+  font: inherit;
+  font-weight: 900;
+  font-size: 1rem;
+  color: var(--white);
+  background: var(--plank);
+  box-shadow: inset 0 0 0 3px var(--ink), 0 4px 0 var(--ink);
+  cursor: pointer;
+}
+.shopx__tab.is-active {
+  color: var(--ink);
+  background: #ffe14d;
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 3px var(--ink), 0 2px 0 var(--ink);
+}
+.shopx__tab:focus-visible,
+.shopx__card:focus-visible {
+  outline: 3px dashed var(--sky-4);
+  outline-offset: 2px;
+}
+
+/* ---------- Shelves of item cards ---------- */
+.shopx__shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 44%), 1fr));
+  gap: 22px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.shopx__shelf > li {
+  position: relative;
+}
+/* The wooden shelf plank each card stands on. */
+.shopx__shelf > li::after {
+  content: '';
+  position: absolute;
+  inset-inline: -6px;
+  bottom: -12px;
+  height: 8px;
+  background: var(--wood-light);
+  box-shadow: 0 4px 0 var(--wood-dark), inset 0 -2px 0 var(--plank);
+  pointer-events: none;
+}
+.shopx__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 100%;
+  padding: 8px 6px 10px;
+  border: 0;
+  font: inherit;
+  color: var(--ink);
+  background: #fff8e8;
+  box-shadow: inset 0 0 0 3px var(--ink), inset 0 -6px 0 #e8d6b0;
+  cursor: pointer;
+  transition: transform 0.12s steps(2, end);
+}
+.shopx__card:active {
+  transform: translateY(2px);
+}
+.shopx__card.is-selected {
+  background: #fff1a8;
+  box-shadow: inset 0 0 0 4px #ff8a2a, inset 0 0 0 7px var(--ink);
+  animation: shopx-pick 0.3s steps(3, end);
+}
+@keyframes shopx-pick {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+}
+.shopx__card.is-owned {
+  background: #e6ffe8;
+}
+.shopx__card.is-locked,
+.shopx__card.is-unfit {
+  background: #e7e3ef;
+}
+.shopx__card.is-unfit .shopx__thumb {
+  opacity: 0.5;
+}
+.shopx__thumb {
+  --cell: 3.6px;
+  display: grid;
+  place-items: end center;
+  width: 100%;
+  height: calc(var(--cell) * 27);
+}
+.shopx__card-name {
+  font-weight: 900;
+  font-size: 1rem;
+  line-height: 1.35;
+  text-align: center;
+}
+.shopx__card-price {
+  font-size: 1.05rem;
+  color: #a2560b;
+}
+.shopx__card-owned {
+  font-weight: 900;
+  font-size: 0.9rem;
+  color: #12823a;
+  text-align: center;
+}
+.shopx__card-action {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink-light);
+}
+.shopx__card-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #6a5a85;
+  text-align: center;
+}
+.shopx__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px;
+  text-align: center;
+  background: rgb(42 29 92 / 0.7);
+}
+.shopx__empty p {
+  margin: 0;
+  font-weight: 700;
+}
+.shopx__to-shop {
+  display: block;
+  margin: 26px auto 0;
+}
+
+/* Phones in portrait: preview and details side by side, so the shelves start sooner. */
+@media (max-width: 759px) and (orientation: portrait) {
+  .shopx__stage {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: start;
+    gap: 10px;
+    padding: 10px;
+  }
+  .shopx__preview,
+  .shopx__preview--big {
+    --cell: clamp(4px, 1.7vw, 8px);
+    min-height: calc(var(--cell) * 27);
+  }
+  .shopx__name {
+    font-size: 1.1rem;
+  }
+  .shopx__desc,
+  .shopx__hint,
+  .shopx__warn {
+    font-size: 0.85rem;
+  }
+  .shopx__buy .pixel-button {
+    min-width: 0;
+    width: 100%;
+    padding: 0 0.6em;
+    font-size: 1rem;
+  }
+  .shopx__price {
+    font-size: 1.2rem;
+  }
+  .shopx--locker .shopx__worn {
+    grid-template-columns: minmax(0, 1fr);
+    font-size: 0.82rem;
+  }
+  .shopx--locker .shopx__details .levelbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 420px) {
+  .shopx__tabs {
+    gap: 6px 4px;
+  }
+  .shopx__tab {
+    min-height: 44px;
+    padding: 0 9px;
+    font-size: 0.9rem;
+  }
+}

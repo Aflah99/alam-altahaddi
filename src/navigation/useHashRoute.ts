@@ -9,6 +9,8 @@ export type Route =
   | { name: 'select' }
   | { name: 'lobby' }
   | { name: 'map' }
+  | { name: 'shop'; category?: string }
+  | { name: 'locker' }
   | { name: 'world'; subject: string }
   | { name: 'chapters'; subject: string }
   | { name: 'quiz'; subject: string; lesson: string; mission: number }
@@ -23,6 +25,10 @@ export function routeToHash(route: Route): string {
       return '#/lobby'
     case 'map':
       return '#/map'
+    case 'shop':
+      return route.category ? `#/shop/${encodeURIComponent(route.category)}` : '#/shop'
+    case 'locker':
+      return '#/locker'
     case 'world':
       return `#/world/${encodeURIComponent(route.subject)}`
     case 'chapters':
@@ -37,6 +43,8 @@ export function parseHash(hash: string): Route {
   if (parts[0] === 'character') return { name: 'select' }
   if (parts[0] === 'lobby') return { name: 'lobby' }
   if (parts[0] === 'map') return { name: 'map' }
+  if (parts[0] === 'shop') return parts[1] ? { name: 'shop', category: parts[1] } : { name: 'shop' }
+  if (parts[0] === 'locker') return { name: 'locker' }
   if (parts[0] === 'quiz' && parts[1] && parts[2] && Number(parts[3]) >= 1) {
     return { name: 'quiz', subject: parts[1], lesson: parts[2], mission: Math.floor(Number(parts[3])) }
   }

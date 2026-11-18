@@ -23,6 +23,8 @@ interface WorldScreenProps {
   subject: SubjectConfig
   level: LevelConfig
   character: CharacterDef
+  /** Equipped cosmetic ids. */
+  outfit?: readonly string[]
   settings: Settings
   onSettingsChange: (patch: Partial<Settings>) => void
   play: (name: SfxName) => void
@@ -52,7 +54,7 @@ const measure = () => computeViewport(window.innerWidth, window.innerHeight, rea
  * the player and camera by writing transforms directly, so play causes no
  * React re-renders (only "near the portal" and pause change state).
  */
-export function WorldScreen({ subject, level, character, settings, onSettingsChange, play, onOpenChapters, onMap }: WorldScreenProps) {
+export function WorldScreen({ subject, level, character, outfit, settings, onSettingsChange, play, onOpenChapters, onMap }: WorldScreenProps) {
   const spriteW = character.rows[0].length
   const spriteH = character.rows.length
 
@@ -237,7 +239,7 @@ export function WorldScreen({ subject, level, character, settings, onSettingsCha
         <PortalGate x={level.portalX} title={subject.title} near={near} onEnter={enterPortal} />
         <div className="wplayer" ref={playerRef} data-state="idle" aria-hidden="true">
           <div className="wplayer__flip">
-            <CharacterSprite character={character} anim="still" decorative />
+            <CharacterSprite character={character} outfit={outfit} anim="still" decorative />
           </div>
         </div>
       </div>
