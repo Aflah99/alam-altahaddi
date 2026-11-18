@@ -31,6 +31,22 @@ passwords or tokens in chat.
 
 Do not start a new numbered task until the owner assigns or approves it.
 
+## Efficient workflow (from the project owner)
+
+- Start from `docs/DEVELOPMENT_STATUS.md` and the current repository, not old conversation
+  history. Update that file (keep it short) before finishing each phase.
+- Read only the files the task needs; search with grep/glob before opening large files.
+- Don't reprocess the textbook PDFs or the 600-question bank unless the task requires it.
+- Supabase: use targeted SQL and migration checks; don't dump whole tables or schemas. Use
+  the connector only for real database actions or verification.
+- Run focused tests while developing. Before a merge or deploy, run the full set: typecheck,
+  lint, unit, `test:db` and the relevant browser journeys.
+- Don't retest unchanged features or take redundant screenshots. Keep the final deployment
+  check at iPhone and iPad sizes.
+- For large content, use scripts and intermediate files instead of passing it through the model.
+- Reports: key findings, changed files, test results, open issues. No long code or log dumps.
+- Never skip security checks, source validation or backups to save effort.
+
 ## Project rules
 
 - All UI text is Arabic, right-to-left. Readable for Grade 8 students.
