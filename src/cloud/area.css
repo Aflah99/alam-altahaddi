@@ -87,12 +87,14 @@
   }
   .area__nav {
     flex-direction: row;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    gap: 4px;
     padding: 6px 8px;
-    scrollbar-width: none;
   }
   .area__nav-item {
     flex: none;
+    min-height: 40px;
+    padding: 0 10px;
   }
 }
 .area__h1 {
@@ -286,4 +288,67 @@
   cursor: pointer;
   text-decoration: underline;
   text-decoration-color: #c9c0ea;
+}
+
+/* Charts in the parent dashboard */
+.bars {
+  margin: 0;
+}
+.bars__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0;
+  font-size: 0.85rem;
+}
+.bars__legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+.bars__rows {
+  display: grid;
+  gap: 6px;
+}
+.bars__row {
+  display: grid;
+  grid-template-columns: minmax(90px, 32%) 1fr auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+.bars__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bars__track {
+  display: flex;
+  height: 16px;
+  border-radius: 4px;
+  background: #ece7fb;
+  overflow: hidden;
+}
+.bars__seg {
+  display: block;
+  height: 100%;
+}
+.bars__total {
+  min-width: 2.5em;
+  text-align: end;
+  font-weight: 700;
+}
+.insight {
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  line-height: 1.7;
+}
+.insight--revise {
+  background: #fff1c9;
+}
+.insight--strength {
+  background: #dcf6e6;
 }
