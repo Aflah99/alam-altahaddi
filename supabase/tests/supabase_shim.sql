@@ -53,7 +53,7 @@ create or replace function storage.foldername(name text) returns text[] language
   select (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1]
 $$;
 
--- Current Supabase defaults (new projects): functions are executable by the API roles, but
--- tables and sequences are NOT granted automatically. Migrations grant table access explicitly
--- (see 20261118000800_api_grants.sql), and RLS decides rows.
-alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+-- Current Supabase defaults (new projects, verified on the real project): no automatic grants
+-- to the API roles at all. Tables: none. Functions: only PostgreSQL's built-in PUBLIC execute,
+-- so a migration that revokes PUBLIC must grant the API roles explicitly
+-- (see 20261118000800_api_grants.sql and 20261118000900_function_grants.sql).

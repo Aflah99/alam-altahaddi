@@ -29,6 +29,8 @@ const rpc = async (c, fn, args) => {
   return data
 }
 const fails = async (p) => p.then(() => false, () => true)
+/** Blocked = an error (no privilege) or no visible rows (RLS). */
+const none = (r) => !!r.error || !r.data || r.data.length === 0
 
 // ---------- accounts and roles
 const anon = client()
@@ -61,8 +63,8 @@ const cat = await rpc(kidA, 'get_catalog')
 const subj = cat[0]
 const lessonCount = subj?.units?.reduce((n, u) => n + u.lessons.length, 0) ?? 0
 check(lessonCount === 27, 'catalogue: 27 published lessons visible to a student', `got ${lessonCount}`)
-check((await anon.from('questions').select('id').limit(1)).data?.length === 0, 'signed-out visitors cannot read questions')
-check((await kidA.from('question_options').select('is_correct').limit(1)).data?.length === 0, 'students cannot read the answer key')
+check(none(await anon.from('questions').select('id').limit(1)), 'signed-out visitors cannot read questions')
+check(none(await kidA.from('question_options').select('is_correct').limit(1)), 'students cannot read the answer key')
 const { count: qCount } = await admin.from('questions').select('id', { count: 'exact', head: true }).eq('status', 'published')
 check(qCount === 600, 'admin sees 600 published questions', `got ${qCount}`)
 const { data: flags } = await admin.from('academic_flags').select('key, status')
@@ -115,9 +117,9 @@ await rpc(kidA, 'equip_item', { p_item: cheap.id })
 check(Object.values((await rpc(kidA, 'get_my_game_state')).equipped).includes(cheap.id), 'equipping an owned item works')
 
 // ---------- isolation between roles
-check((await kidA.from('student_profiles').select('id').eq('id', kB.student_id)).data?.length === 0, 'a student cannot read another student’s profile')
-check((await kidA.from('question_attempts').select('id').eq('student_id', kB.student_id)).data?.length === 0, 'a student cannot read another student’s answers')
-check((await parentB.from('reward_transactions').select('id').eq('student_id', kA.student_id)).data?.length === 0, 'a parent cannot read another family’s rewards')
+check(none(await kidA.from('student_profiles').select('id').eq('id', kB.student_id)), 'a student cannot read another student’s profile')
+check(none(await kidA.from('question_attempts').select('id').eq('student_id', kB.student_id)), 'a student cannot read another student’s answers')
+check(none(await parentB.from('reward_transactions').select('id').eq('student_id', kA.student_id)), 'a parent cannot read another family’s rewards')
 check(await fails(rpc(parentB, 'parent_child_report', { p_student: kA.student_id, p_days: null })), 'a parent cannot open another family’s report')
 const rep = await rpc(parentA, 'parent_child_report', { p_student: kA.student_id, p_days: null })
 check(rep.summary.answered === n * 2 && rep.summary.xp === exp, 'parent report shows the child’s real results', `answered ${rep.summary.answered}`)
