@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { allowedOrigin, checkChildInput, studentEmail } from './accounts.ts'
+import { allowedOrigin, checkChildInput, passwordProblem, studentEmail } from './accounts.ts'
 
 describe('child account input', () => {
-  const ok = { username: 'sara_8', nickname: 'نجمة', password: 'longpass1' }
+  const ok = { username: 'sara_8', nickname: 'نجمة', password: 'Long#pass1' }
   it('accepts a valid child', () => expect(checkChildInput(ok)).toEqual({ ok: true }))
   it('rejects bad usernames, nicknames and short passwords', () => {
     expect(checkChildInput({ ...ok, username: 'Sara Smith' }).ok).toBe(false)
@@ -10,7 +10,12 @@ describe('child account input', () => {
     expect(checkChildInput({ ...ok, nickname: 'x' }).ok).toBe(false)
     expect(checkChildInput({ ...ok, nickname: '<script>' }).ok).toBe(false)
     expect(checkChildInput({ ...ok, password: 'short' }).ok).toBe(false)
-    expect(checkChildInput({ ...ok, password: 'sara_8pass' }).ok).toBe(false)
+    expect(checkChildInput({ ...ok, password: 'sara_8Pass!' }).ok).toBe(false)
+    expect(checkChildInput({ ...ok, password: 'longpass1' }).ok).toBe(false)
+  })
+  it('requires the Supabase password policy: lower, upper, digit and symbol', () => {
+    expect(passwordProblem('Abcdef1!')).toBeNull()
+    for (const pw of ['abcdef1!', 'ABCDEF1!', 'Abcdefg!', 'Abcdefg1', 'Ab1!']) expect(passwordProblem(pw)).not.toBeNull()
   })
   it('only allows the free base characters at creation', () => {
     expect(checkChildInput({ ...ok, character_id: 'fox' }).ok).toBe(true)

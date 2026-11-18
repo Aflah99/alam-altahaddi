@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { BASE_CHARACTER_IDS, getCharacter } from '../characters/roster'
 import { invokeFunction } from '../cloud/api'
-import { useAuth } from '../cloud/auth'
+import { PASSWORD_HINT, passwordProblem, useAuth } from '../cloud/auth'
 import { AreaMessage, AreaShell } from '../cloud/AreaShell'
 import { arabicError, supabase } from '../cloud/client'
 import { USERNAME_RE } from '../cloud/config'
@@ -125,6 +125,8 @@ function ChildrenSection({ kids, reload, onOpen }: { kids: ChildRow[] | null; re
     e.preventDefault()
     const u = username.trim().toLowerCase()
     if (!USERNAME_RE.test(u)) return setMsg({ ok: false, text: 'اسم الدخول من ٣ إلى ٢٠ حرفًا إنجليزيًّا صغيرًا أو رقمًا أو شرطة سفلية.' })
+    const pwProblem = passwordProblem(password)
+    if (pwProblem) return setMsg({ ok: false, text: pwProblem })
     setBusy(true)
     setMsg(null)
     try {
@@ -142,6 +144,8 @@ function ChildrenSection({ kids, reload, onOpen }: { kids: ChildRow[] | null; re
   }
 
   const reset = async (id: string) => {
+    const pwProblem = passwordProblem(newPassword)
+    if (pwProblem) return setMsg({ ok: false, text: pwProblem })
     setBusy(true)
     setMsg(null)
     try {
@@ -183,7 +187,7 @@ function ChildrenSection({ kids, reload, onOpen }: { kids: ChildRow[] | null; re
               {resetFor === c.id && (
                 <div className="area__form" style={{ marginTop: 10 }}>
                   <label>
-                    كلمة المرور الجديدة (٨ أحرف على الأقل)
+                    كلمة المرور الجديدة ({PASSWORD_HINT})
                     <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
                   </label>
                   <button type="button" className="area__btn" disabled={busy || newPassword.length < 8} onClick={() => void reset(c.id)}>
@@ -207,7 +211,7 @@ function ChildrenSection({ kids, reload, onOpen }: { kids: ChildRow[] | null; re
           <input value={nickname} onChange={(e) => setNickname(e.target.value)} maxLength={12} required />
         </label>
         <label>
-          كلمة المرور (٨ أحرف على الأقل)
+          كلمة المرور ({PASSWORD_HINT})
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
         </label>
         <label>

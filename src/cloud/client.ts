@@ -16,6 +16,8 @@ export function supabase(): SupabaseClient | null {
 export function arabicError(e: unknown): string {
   const msg = String((e as { message?: string })?.message ?? e)
   if (/rate_limited|too many|rate limit/i.test(msg)) return 'محاولات كثيرة في وقت قصير. انتظر قليلًا ثم حاول مرة أخرى.'
+  if (/weak_password|password should contain|password is known to be weak/i.test(msg))
+    return 'كلمة المرور ضعيفة: استخدم ٨ أحرف على الأقل فيها حرف إنجليزي صغير وكبير ورقم ورمز.'
   if (/invalid login credentials/i.test(msg)) return 'اسم الدخول أو كلمة المرور غير صحيحة.'
   if (/email not confirmed/i.test(msg)) return 'لم يُؤكَّد البريد الإلكتروني بعد. افتح رسالة التأكيد في بريدك.'
   if (/insufficient coins/i.test(msg)) return 'رصيدك من العملات لا يكفي.'

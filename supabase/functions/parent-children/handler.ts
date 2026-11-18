@@ -4,7 +4,7 @@
 //   reset_password  { student_id, password }
 //   delete          { student_id, confirm_username }
 // Children get a username login with a non-routable internal email; no personal email is collected.
-import { BASE_CHARACTERS, checkChildInput, MAX_CHILDREN_PER_PARENT, normalizeNickname, PASSWORD_MIN, studentEmail } from '../_shared/accounts.ts'
+import { BASE_CHARACTERS, checkChildInput, MAX_CHILDREN_PER_PARENT, normalizeNickname, passwordProblem, studentEmail } from '../_shared/accounts.ts'
 import { audit, caller, corsHeaders, json as jsonEnv, type Ctx } from '../_shared/respond.ts'
 
 export async function handleParentChildren(req: Request, { admin, env }: Ctx): Promise<Response> {
@@ -56,7 +56,8 @@ export async function handleParentChildren(req: Request, { admin, env }: Ctx): P
   if (body.action === 'reset_password') {
     if (!(await ownsChild(body.student_id))) return json(req, { error: 'لا تملك صلاحية على هذا الحساب.' }, 403)
     const password = String(body.password ?? '')
-    if (password.length < PASSWORD_MIN || password.length > 72) return json(req, { error: `كلمة المرور من ${PASSWORD_MIN} أحرف على الأقل.` }, 400)
+    const pw = passwordProblem(password)
+    if (pw) return json(req, { error: pw }, 400)
     const { error } = await admin.auth.admin.updateUserById(String(body.student_id), { password })
     if (error) return json(req, { error: 'تعذّر تغيير كلمة المرور.' }, 400)
     await audit(admin, me.user.id, 'child_reset_password', 'student', String(body.student_id))
