@@ -155,11 +155,20 @@ export function App() {
           )}
         </Suspense>
       )}
-      {screen === 'groups' && isStudent && (
-        <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
-          <GroupsScreen onBack={() => goBack({ name: 'lobby' })} />
-        </Suspense>
-      )}
+      {screen === 'groups' &&
+        (isStudent ? (
+          <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
+            <GroupsScreen onBack={() => goBack({ name: 'lobby' })} />
+          </Suspense>
+        ) : auth.state.status === 'loading' || (signedIn && !signedIn.role) ? (
+          <Waiting text="جارٍ التحميل…" />
+        ) : (
+          <Waiting
+            text="لوحة الأبطال متاحة للطلاب بعد تسجيل الدخول بحساب أنشأه ولي الأمر."
+            actionLabel={signedIn ? 'العودة' : 'تسجيل الدخول'}
+            onAction={() => navigate(signedIn ? { name: 'start' } : { name: 'account' })}
+          />
+        ))}
       {screen === 'select' && (
         <CharacterSelectScreen
           profile={identity}
