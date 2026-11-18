@@ -26,7 +26,11 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
   - Live site at 5 sizes (375×667, 390×844, 430×932, 768×1024, 1194×834): guest start, sign-in/sign-up,
     student lobby + groups + session persistence, parent and admin dashboards; RTL, Cairo, no overflow,
     no failed assets, real project in use, no secrets in the bundle.
-- Synthetic accounts and all their data deleted afterwards (project has 0 users).
+- Synthetic accounts and all their data deleted afterwards.
+- First administrator (2026-11-18): the owner's account was created by an official Supabase email link; ownership
+  was confirmed from the auth logs (link opened on the owner's phone), then promoted with `grant_admin`. It is the only
+  admin and the only account. Server checks: `is_admin`/`admin_dashboard` succeed for it and fail for others.
+  To add another admin later: the person signs up, proves the email, then run `grant_admin('<email>')` server-side.
 
 ## Security advisor notes (deliberate)
 - `authenticated_security_definer_function_executable` (50): intended API RPCs; each checks the caller's role inside.
@@ -34,13 +38,11 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
 - Performance INFO (unindexed FKs, duplicate permissive SELECT policies): negligible at this scale.
 
 ## Owner items (blocking or before real families)
-1. **First admin**: sign up as a parent on the live site, confirm the email, then ask Claude to run
-   `select public.grant_admin('<email>')` — only after checking `auth.users.email_confirmed_at` is set.
-2. **Custom SMTP** (Supabase → Authentication → Emails → SMTP): built-in email reaches only project team members.
-3. **Leaked-password protection** (Authentication → Passwords) — advisor warning; may need a paid plan.
-4. **Legal/privacy review** of `PRIVACY.md` before real children and families use the site.
-5. AI generation stays disabled (no `ANTHROPIC_API_KEY`, no spending authorised).
-6. The old `api.supabase.com` network secret in the cloud environment is invalid (401); unused, can be deleted.
+1. **Custom SMTP** (Supabase → Authentication → Emails → SMTP): built-in email reaches only project team members.
+2. **Leaked-password protection** (Authentication → Passwords) — advisor warning; may need a paid plan.
+3. **Legal/privacy review** of `PRIVACY.md` before real children and families use the site.
+4. AI generation stays disabled (no `ANTHROPIC_API_KEY`, no spending authorised).
+5. The old `api.supabase.com` network secret in the cloud environment is invalid (401); unused, can be deleted.
 
 ## Testing quick reference
 - `npm run typecheck && npm run lint && npm test && npm run build`
