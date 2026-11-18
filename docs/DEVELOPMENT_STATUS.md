@@ -5,7 +5,7 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
 ## Architecture (one screen)
 - Frontend: React 19 + Vite + TS, static on GitHub Pages (`/alam-altahaddi/`). Guest mode works with no backend.
 - Backend: Supabase project `alam-altahaddi` (ref `huaaocsahissfbpltcyn`, Tokyo, Postgres 17).
-  - `supabase/migrations/` (6 files, applied in order): accounts → content → game → legacy_content (600 Qs) → admin_ai → parents_groups.
+  - `supabase/migrations/` (7 files, applied in order): accounts → content → game → legacy_content (600 Qs) → admin_ai → parents_groups → hardening.
   - All game logic is in SECURITY DEFINER RPCs; RLS on every table.
   - Edge Functions in `supabase/functions/`: `parent-children` (child accounts), `ai-worker` (textbook → draft questions with Claude).
 - Browser receives only `VITE_SUPABASE_URL` + `VITE_SUPABASE_PUBLISHABLE_KEY` (GitHub Actions *variables*).
@@ -21,8 +21,8 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
 
 ## Active task — real Supabase integration (Tasks 07–09 deployment)
 Remaining steps, in order:
-1. Drop the temporary `http` extension (needs the owner's confirmation in the Supabase connector prompt).
-2. Run the security advisors and RLS checks with synthetic accounts.
+1. Done: the temporary `http` extension is dropped. Security advisors run; `0700_hardening` fixes the search_path and anon EXECUTE findings.
+2. Apply `0700_hardening` to the real project; run RLS checks with synthetic accounts.
 3. Deploy the `parent-children` and `ai-worker` Edge Functions. AI stays off.
 4. Set the GitHub variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`, then redeploy Pages.
 5. Verify the auth redirect URLs; owner signs up, then `select public.grant_admin('<owner email>')` on that exact account.
