@@ -253,7 +253,8 @@ async function handleRest(req, res, path, url) {
       const fn = ident(path.slice(5))
       const args = await jsonBody(req)
       const keys = Object.keys(args)
-      const params = keys.map((k) => (args[k] !== null && typeof args[k] === 'object' ? JSON.stringify(args[k]) : args[k]))
+      // Like PostgREST: JSON arrays become PostgreSQL arrays, other objects stay JSON.
+      const params = keys.map((k) => (Array.isArray(args[k]) ? args[k] : args[k] !== null && typeof args[k] === 'object' ? JSON.stringify(args[k]) : args[k]))
       const sql = `select public.${fn}(${keys.map((k, i) => `${ident(k)} := $${i + 1}`).join(', ')}) as v`
       const r = await asRole(claims, sql, params)
       const v = r.rows[0]?.v
@@ -289,12 +290,14 @@ async function handleRest(req, res, path, url) {
         (upsert ? ` on conflict (${conflict.split(',').map(ident).join(', ')}) do update set ${cols.map((c) => `${ident(c)} = excluded.${ident(c)}`).join(', ')}` : ignore ? ' on conflict do nothing' : '') +
         ` returning ${selectList(url)}`
       const r = await asRole(claims, sql, params)
+      if ((req.headers.accept ?? '').includes('vnd.pgrst.object')) return r.rows.length === 1 ? send(res, 201, r.rows[0]) : send(res, 406, { code: 'PGRST116', message: 'not one row' })
       return /return=representation/.test(prefer) ? send(res, 201, r.rows) : send(res, 201)
     }
     if (req.method === 'PATCH') {
       const body = await jsonBody(req)
       const sets = Object.keys(body).map((c) => `${ident(c)} = $${params.push(body[c] !== null && typeof body[c] === 'object' ? JSON.stringify(body[c]) : body[c])}`)
       const r = await asRole(claims, `update public.${table} set ${sets.join(', ')}${filters(url, params)} returning ${selectList(url)}`, params)
+      if ((req.headers.accept ?? '').includes('vnd.pgrst.object')) return r.rows.length === 1 ? send(res, 200, r.rows[0]) : send(res, 406, { code: 'PGRST116', message: 'not one row' })
       return /return=representation/.test(prefer) ? send(res, 200, r.rows) : send(res, 204)
     }
     if (req.method === 'DELETE') {
@@ -308,6 +311,22 @@ async function handleRest(req, res, path, url) {
 }
 
 /* ---------- Storage (private bucket subset) ---------- */
+/** The file part of a multipart upload (the part that is not a plain field such as cacheControl). */
+function fileFromMultipart(buf, boundary) {
+  const sep = Buffer.from(`--${boundary}`)
+  let pos = buf.indexOf(sep)
+  while (pos !== -1) {
+    const next = buf.indexOf(sep, pos + sep.length)
+    if (next === -1) break
+    const part = buf.subarray(pos + sep.length + 2, next - 2)
+    const headerEnd = part.indexOf('\r\n\r\n')
+    const headers = part.subarray(0, headerEnd).toString()
+    if (!/name="cacheControl"|name="metadata"/.test(headers)) return part.subarray(headerEnd + 4)
+    pos = next
+  }
+  return buf
+}
+
 async function handleStorage(req, res, path) {
   const claims = claimsOf(req)
   const m = path.match(/^\/object\/(?:authenticated\/)?([^/]+)\/(.+)$/)
@@ -316,7 +335,10 @@ async function handleStorage(req, res, path) {
   const file = join(STORAGE_DIR, bucket, name)
   try {
     if (req.method === 'POST' || req.method === 'PUT') {
-      const body = await readBody(req)
+      let body = await readBody(req)
+      const ct = req.headers['content-type'] ?? ''
+      const boundary = ct.match(/boundary=(?:"([^"]+)"|([^;]+))/)
+      if (ct.startsWith('multipart/form-data') && boundary) body = fileFromMultipart(body, boundary[1] ?? boundary[2])
       await asRole(claims, `insert into storage.objects (bucket_id, name, owner) values ($1, $2, $3) on conflict (bucket_id, name) do nothing`, [bucket, name, claims.sub ?? null])
       mkdirSync(dirname(file), { recursive: true })
       writeFileSync(file, body)
@@ -348,13 +370,38 @@ async function handleFunction(req, res, name) {
   const body = req.method === 'GET' || req.method === 'OPTIONS' ? undefined : await readBody(req)
   const request = new Request(`${BASE}/functions/v1/${name}`, { method: req.method, headers: req.headers, body })
   const admin = createClient(BASE, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
-  const env = (k) => ({ ALLOWED_ORIGINS: 'http://localhost:4173,http://localhost:5173', SUPABASE_URL: BASE, ...process.env })[k]
+  const env = (k) => ({ ALLOWED_ORIGINS: 'http://localhost:4173,http://localhost:4174,http://localhost:5173', SUPABASE_URL: BASE, ...process.env })[k]
+  const extras = name === 'ai-worker' ? await workerExtras() : {}
   try {
-    const response = await handlers[name](request, { admin, env, fetchImpl: globalThis.fetch })
+    const response = await handlers[name](request, { admin, env, ...extras })
     const buf = Buffer.from(await response.arrayBuffer())
-    send(res, response.status, buf, { ...Object.fromEntries(response.headers), ...cors })
+    // The function sets its own CORS headers (as on Supabase); don't add a second Allow-Origin.
+    const headers = Object.fromEntries(response.headers)
+    res.writeHead(response.status, { ...Object.fromEntries(Object.entries(cors).filter(([k]) => k.toLowerCase() !== 'access-control-allow-origin')), ...headers })
+    res.end(buf)
   } catch (e) {
     send(res, 500, { error: String(e.message ?? e) })
+  }
+}
+
+/* ---------- ai-worker dependencies (PDF tools are real; the model is a labelled fake) ---------- */
+async function workerExtras() {
+  const { PDFDocument } = await import('pdf-lib')
+  const ai = process.env.EMU_FAKE_AI === '1' ? (await import('./fake-ai.mjs')).fakeAi : null
+  return {
+    ai,
+    pdf: {
+      pageCount: async (b) => (await PDFDocument.load(b)).getPageCount(),
+      slice: async (b, from, to) => {
+        const src = await PDFDocument.load(b)
+        const out = await PDFDocument.create()
+        for (const pg of await out.copyPages(src, Array.from({ length: to - from + 1 }, (_, i) => from - 1 + i))) out.addPage(pg)
+        return out.save()
+      },
+    },
+    docxToText: async () => {
+      throw new Error('DOCX conversion is not available in the local test emulator')
+    },
   }
 }
 

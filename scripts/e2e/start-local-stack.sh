@@ -6,7 +6,7 @@ cd "$ROOT"
 TEST_DB_NAME=alam_e2e bash scripts/db/reset-local.sh
 node scripts/e2e/seed.mjs
 pkill -f local-supabase.mjs 2>/dev/null || true
-nohup node --experimental-strip-types scripts/e2e/local-supabase.mjs > node_modules/.tmp/emu.log 2>&1 &
+EMU_FAKE_AI=1 nohup node --experimental-strip-types scripts/e2e/local-supabase.mjs > node_modules/.tmp/emu.log 2>&1 &
 sleep 2
 ANON=$(curl -s http://localhost:54321/__keys | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).anon))")
 VITE_SUPABASE_URL=http://localhost:54321 VITE_SUPABASE_PUBLISHABLE_KEY="$ANON" npx vite build --outDir node_modules/.tmp/dist-cloud >/dev/null
