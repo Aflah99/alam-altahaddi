@@ -7,7 +7,9 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin noinherit bypassrls; end if;
 end $$;
 
-create extension if not exists pgcrypto;
+-- Same layout as Supabase: extensions live in their own schema, not in public.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 create schema if not exists auth;
 create schema if not exists storage;
 create schema if not exists extensions;

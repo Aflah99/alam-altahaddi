@@ -9,7 +9,7 @@ const users = [
 ]
 for (const [email, password, role] of users) {
   await pool.query(
-    `insert into auth.users (email, encrypted_password, email_confirmed_at) values ($1, crypt($2, gen_salt('bf')), now()) on conflict (email) do nothing`,
+    `insert into auth.users (email, encrypted_password, email_confirmed_at) values ($1, extensions.crypt($2, extensions.gen_salt('bf')), now()) on conflict (email) do nothing`,
     [email, password],
   )
   if (role === 'admin') await pool.query('select public.grant_admin($1)', [email])

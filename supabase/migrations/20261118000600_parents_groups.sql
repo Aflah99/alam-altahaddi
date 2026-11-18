@@ -81,10 +81,10 @@ begin
 end $$;
 
 create or replace function public.new_invite_code() returns text
-language plpgsql volatile as $$
+language plpgsql volatile set search_path = public as $$
 declare
   alphabet text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; -- no 0/O/1/I
-  bytes bytea := gen_random_bytes(10);
+  bytes bytea := extensions.gen_random_bytes(10); -- pgcrypto lives in the extensions schema on Supabase
   code text := '';
   i int;
 begin

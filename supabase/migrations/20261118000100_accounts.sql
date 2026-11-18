@@ -12,7 +12,8 @@
 -- backend maps to a non-routable internal address.
 -- ============================================================================
 
-create extension if not exists pgcrypto;
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions; -- Supabase installs it here already
 
 create type public.app_role as enum ('student', 'parent', 'admin');
 
