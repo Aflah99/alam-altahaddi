@@ -3,7 +3,10 @@ import { PASSWORD_HINT, useAuth, passwordProblem } from '../cloud/auth'
 import { arabicError } from '../cloud/client'
 import { USERNAME_RE } from '../cloud/config'
 import { CornerButton } from '../components/CornerButton'
+import { Ground } from '../components/Ground'
 import { Sky } from '../components/Sky'
+import { APP_NAME } from '../config'
+import { EntryHeroes } from './EntryHeroes'
 import { PlayArrow } from '../components/sprites'
 import './account.css'
 
@@ -11,15 +14,14 @@ type Tab = 'student' | 'adult'
 type AdultView = 'signin' | 'signup' | 'forgot'
 
 interface AccountScreenProps {
-  /** Continue as a device-local guest (no account). */
-  onGuest: () => void
-  onBack: () => void
+  /** Present when the screen was opened from inside the game (not the first screen). */
+  onBack?: () => void
   /** Signed in: go to the right place for the role. */
   onSignedIn: (role: 'student' | 'parent' | 'admin' | null) => void
 }
 
 /** تسجيل الدخول — students (username), parents and administrators (email). */
-export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProps) {
+export function AccountScreen({ onBack, onSignedIn }: AccountScreenProps) {
   const auth = useAuth()
   const { state } = auth
   const [tab, setTab] = useState<Tab>('student')
@@ -33,6 +35,7 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
   const [password2, setPassword2] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [consent, setConsent] = useState(false)
+  const [canResend, setCanResend] = useState(false)
   // Signing in from this screen goes straight to the right place for the role.
   const justSignedIn = useRef(false)
   useEffect(() => {
@@ -43,6 +46,7 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
   }, [state, onSignedIn])
 
   useEffect(() => {
+    if (!onBack) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onBack()
     }
@@ -65,13 +69,8 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
 
   if (state.status === 'disabled') {
     return (
-      <Shell onBack={onBack} title="الحساب">
-        <p className="acct__note">
-          الحسابات السحابية (حفظ التقدّم على أكثر من جهاز، لوحة ولي الأمر والمجموعات الخاصة) غير مفعّلة في هذه النسخة بعد.
-        </p>
-        <button type="button" className="pixel-button acct__wide" onClick={onGuest}>
-          اللعب كضيف على هذا الجهاز
-        </button>
+      <Shell onBack={onBack} title="تسجيل الدخول">
+        <p className="acct__note">الخدمة غير متاحة حاليًّا. حاول لاحقًا.</p>
       </Shell>
     )
   }
@@ -158,8 +157,21 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
       return
     }
     justSignedIn.current = true
-    void run(() => auth.signInWithEmail(email, password))
+    void run(async () => {
+      try {
+        await auth.signInWithEmail(email, password)
+      } catch (e) {
+        if (/email not confirmed/i.test(String((e as { message?: string }).message))) setCanResend(true)
+        throw e
+      }
+    })
   }
+  const resend = () =>
+    void run(async () => {
+      await auth.resendConfirmation(email)
+      setCanResend(false)
+      setNotice('أعدنا إرسال رسالة التأكيد. افتح بريدك ثم سجّل الدخول.')
+    })
 
   return (
     <Shell onBack={onBack} title="تسجيل الدخول">
@@ -209,6 +221,11 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
             </>
           )}
           <Status error={error} notice={notice} />
+          {canResend && adultView === 'signin' && (
+            <button type="button" className="acct__link" onClick={resend} disabled={busy}>
+              إعادة إرسال رسالة تأكيد البريد
+            </button>
+          )}
           <button type="submit" className="pixel-button acct__wide" disabled={busy}>
             {adultView === 'signup' ? 'إنشاء حساب ولي أمر' : adultView === 'forgot' ? 'إرسال رابط الاستعادة' : 'دخول'}
           </button>
@@ -232,26 +249,35 @@ export function AccountScreen({ onGuest, onBack, onSignedIn }: AccountScreenProp
           <p className="acct__small">حسابات المشرفين لا تُنشأ من هنا؛ يمنحها مالك المنصة فقط.</p>
         </form>
       )}
-
-      <div className="acct__divider" />
-      <button type="button" className="pause-menu__item acct__wide" onClick={onGuest}>
-        اللعب كضيف على هذا الجهاز (دون حساب)
-      </button>
     </Shell>
   )
 }
 
-function Shell({ title, onBack, children }: { title: string; onBack: () => void; children: ReactNode }) {
+function Shell({ title, onBack, entry = !onBack, children }: { title: string; onBack?: () => void; entry?: boolean; children: ReactNode }) {
   return (
-    <div className="acct">
+    <div className={`acct${entry ? ' acct--entry' : ''}`}>
       <Sky />
       <div className="acct__scroll">
-        <header className="acct__header">
-          <CornerButton icon={<PlayArrow className="icon-back" />} label="رجوع" onClick={onBack} />
-          <h1 className="acct__title">{title}</h1>
-        </header>
-        <main className="acct__panel">{children}</main>
+        {entry ? (
+          <header className="acct__hero">
+            <h1 className="game-title acct__game-title">{APP_NAME}</h1>
+            <p className="acct__tagline">مغامرة تعليمية بالبكسل للصف الثامن</p>
+            <div className="acct__heroes" aria-hidden="true">
+              <EntryHeroes />
+            </div>
+          </header>
+        ) : (
+          <header className="acct__header">
+            {onBack && <CornerButton icon={<PlayArrow className="icon-back" />} label="رجوع" onClick={onBack} />}
+            <h1 className="acct__title">{title}</h1>
+          </header>
+        )}
+        <main className="acct__panel">
+          {entry && <h2 className="acct__panel-title">{title}</h2>}
+          {children}
+        </main>
       </div>
+      {entry && <Ground className="acct__ground" />}
     </div>
   )
 }

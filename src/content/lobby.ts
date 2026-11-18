@@ -1,4 +1,8 @@
-import type { InfoContent } from './startMenu'
+export interface InfoContent {
+  title: string
+  paragraphs: readonly string[]
+  status: string
+}
 
 /** Arabic copy for the player lobby. */
 

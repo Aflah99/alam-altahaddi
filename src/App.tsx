@@ -1,68 +1,155 @@
-import { lazy, Suspense, useCallback, useMemo } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AccountScreen } from './account/AccountScreen'
 import { shouldOfferLegacyImport } from './account/legacyImport'
 import { LegacyImportScreen } from './account/LegacyImportScreen'
-import { sfx, type SfxName } from './audio/sfx'
+import { installAudio } from './audio/engine'
+import { playMusic, type TrackId } from './audio/music'
+import { playSfx, type SfxName } from './audio/sfx'
+import { AudioButton } from './components/AudioButton'
 import { getCharacter, isCharacterId } from './characters/roster'
+import * as api from './cloud/api'
 import { useAuth } from './cloud/auth'
-import { cloudEnabled } from './cloud/config'
 import { CloudQuizScreen } from './cloud/CloudQuizScreen'
 import { useCloudGame } from './cloud/useCloudGame'
 import { Sky } from './components/Sky'
 import { CATEGORIES, type ShopCategory } from './economy/catalog'
-import { useWallet } from './economy/useWallet'
-import { useSettings } from './hooks/useSettings'
-import { useHashRoute } from './navigation/useHashRoute'
+import { sanitizeSettings, useSettings, type Settings } from './hooks/useSettings'
+import { useHashRoute, type Route } from './navigation/useHashRoute'
 import type { PlayerIdentity } from './player/playerProfile'
 import { usePlayerProfile } from './player/usePlayerProfile'
-import { missionId } from './quiz/engine'
 import { LessonSelectScreen } from './quiz/LessonSelectScreen'
-import { treeFromBank, treeFromCatalog } from './quiz/lessonTree'
-import { QuizScreen } from './quiz/QuizScreen'
-import { useLearningProgress } from './quiz/useLearningProgress'
-import { useQuestionBank } from './quiz/useQuestionBank'
-import type { LearningProgress } from './quiz/progress'
+import { treeFromCatalog } from './quiz/lessonTree'
 import { CharacterSelectScreen } from './screens/CharacterSelectScreen'
 import { LobbyScreen } from './screens/LobbyScreen'
-import { StartScreen } from './screens/StartScreen'
 import { LockerScreen } from './shop/LockerScreen'
 import { ShopScreen } from './shop/ShopScreen'
 import { AdventureMapScreen } from './world/AdventureMapScreen'
 import { LEVELS } from './world/config/levels'
-import { LOCAL_SUBJECTS, subjectFromCatalog, type SubjectView } from './world/config/subjects'
+import { subjectFromCatalog, type SubjectView } from './world/config/subjects'
 import { WorldScreen } from './world/WorldScreen'
 
-// The parent and admin areas are separate bundles: the game never downloads them.
+// The parent and admin areas are separate bundles: students never download them.
 const ParentApp = lazy(() => import('./parent/ParentApp'))
 const AdminApp = lazy(() => import('./admin/AdminApp'))
 const GroupsScreen = lazy(() => import('./groups/StudentGroupsScreen'))
 
+installAudio()
+
 /**
- * Two ways to play:
- *  - Guest (no account, or cloud not configured): everything stays on this device, as in Tasks 02–06.
- *  - Signed-in student: content comes from the database and every answer, reward,
- *    purchase and piece of equipment is validated by the server.
- * Parents and administrators use their own areas (#/parent, #/admin).
+ * Everyone signs in first. The sign-in page is the first screen; there is no guest mode.
+ *  - Students play: content, answers, rewards, purchases and equipment are validated by the server.
+ *  - Parents use #/parent, administrators #/admin. Each role is sent to its own area, and the
+ *    database (RLS + role checks in every function) enforces the same rules.
  */
 export function App() {
   const [settings, updateSettings] = useSettings()
   const { route, navigate, back } = useHashRoute()
   const auth = useAuth()
-  const signedIn = auth.state.status === 'signed-in' ? auth.state : null
-  const isStudent = signedIn?.role === 'student'
+  const st = auth.state
+  const signedIn = st.status === 'signed-in' ? st : null
+  const role = signedIn?.role ?? null
 
-  const [localProfile, saveLocalProfile] = usePlayerProfile()
-  const [progress, recordProgress] = useLearningProgress(localProfile?.id ?? 'no-profile')
-  const localWallet = useWallet(localProfile?.id ?? 'no-profile')
-  const cloud = useCloudGame(isStudent)
+  usePreferenceSync(signedIn?.userId ?? null, settings, updateSettings)
 
-  const play = useCallback(
-    (name: SfxName) => {
-      if (settings.sound) sfx[name]()
+  // Signed-in adults are kept inside their own area.
+  useEffect(() => {
+    if (!signedIn || signedIn.recovery || !role) return
+    if (role === 'parent' && route.name !== 'parent' && route.name !== 'account') navigate({ name: 'parent', path: [] }, { replace: true })
+    if (role === 'admin' && route.name !== 'admin' && route.name !== 'account') navigate({ name: 'admin', path: [] }, { replace: true })
+  }, [signedIn, role, route.name, navigate])
+
+  const afterSignIn = useCallback(
+    (r: string | null) => {
+      if (r === 'parent') navigate({ name: 'parent', path: [] }, { replace: true })
+      else if (r === 'admin') navigate({ name: 'admin', path: [] }, { replace: true })
+      else if (r === 'student') navigate(route.name === 'start' || route.name === 'account' ? { name: 'lobby' } : route, { replace: true })
     },
-    [settings.sound],
+    [navigate, route],
   )
-  const goBack = useCallback<typeof back>(
+
+  let content
+  let track: TrackId | null = null
+  if (st.status === 'loading') {
+    content = <Waiting text="جارٍ التحقّق من الجلسة…" />
+    track = 'login'
+  } else if (st.status === 'disabled' || st.status === 'signed-out' || (signedIn && signedIn.recovery)) {
+    // Every route, including direct links into the game, lands on the sign-in page.
+    content = <AccountScreen onSignedIn={afterSignIn} />
+    track = 'login'
+  } else if (signedIn && !role) {
+    content = (
+      <Waiting text="جارٍ تحميل حسابك…" actionLabel="تسجيل الخروج" onAction={() => void auth.signOut()} />
+    )
+  } else if (route.name === 'account') {
+    content = <AccountScreen onBack={() => back(role === 'student' ? { name: 'lobby' } : role === 'admin' ? { name: 'admin', path: [] } : { name: 'parent', path: [] })} onSignedIn={afterSignIn} />
+    track = 'login'
+  } else if (role === 'parent' || role === 'admin') {
+    content =
+      route.name === role ? (
+        <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
+          {role === 'parent' ? (
+            <ParentApp path={route.path} navigate={(path) => navigate({ name: 'parent', path })} onExit={() => navigate({ name: 'account' })} />
+          ) : (
+            <AdminApp path={route.path} navigate={(path) => navigate({ name: 'admin', path })} onExit={() => navigate({ name: 'account' })} />
+          )}
+        </Suspense>
+      ) : (
+        <Waiting text="جارٍ التحميل…" />
+      )
+  } else {
+    content = <StudentGame route={route} navigate={navigate} back={back} settings={settings} updateSettings={updateSettings} />
+  }
+
+  // Student screens pick their own music inside StudentGame.
+  useEffect(() => {
+    if (role !== 'student' || route.name === 'account') playMusic(track)
+  }, [role, track, route.name])
+
+  return (
+    <>
+      {content}
+      <AudioButton settings={settings} onChange={updateSettings} />
+    </>
+  )
+}
+
+type Navigate = ReturnType<typeof useHashRoute>['navigate']
+type Back = ReturnType<typeof useHashRoute>['back']
+
+const MUSIC: Partial<Record<string, TrackId>> = {
+  loading: 'lobby',
+  select: 'avatar',
+  lobby: 'lobby',
+  map: 'adventure',
+  world: 'adventure',
+  chapters: 'quiz',
+  quiz: 'quiz',
+  shop: 'shop',
+  locker: 'shop',
+  groups: 'lobby',
+  import: 'lobby',
+}
+
+/** The game for a signed-in student. */
+function StudentGame({
+  route,
+  navigate,
+  back,
+  settings,
+  updateSettings,
+}: {
+  route: Route
+  navigate: Navigate
+  back: Back
+  settings: Settings
+  updateSettings: (patch: Partial<Settings>) => void
+}) {
+  const [localProfile] = usePlayerProfile()
+  const cloud = useCloudGame(true)
+  const [override, setOverride] = useState<{ screen: string; track: TrackId } | null>(null)
+
+  const play = useCallback((name: SfxName) => playSfx(name), [])
+  const goBack = useCallback<Back>(
     (to) => {
       play('back')
       back(to)
@@ -70,41 +157,26 @@ export function App() {
     [back, play],
   )
 
-  // ---- who is playing
-  const identity: PlayerIdentity | null = isStudent
-    ? cloud.state
-      ? { id: cloud.state.student_id, nickname: cloud.state.nickname, characterId: isCharacterId(cloud.state.character_id) ? cloud.state.character_id : 'green-slime' }
-      : null
-    : localProfile
-  const view = isStudent ? cloud.view : localWallet.view
-  const outfit = isStudent ? cloud.outfit : localWallet.outfit
-  const equipped = isStudent ? cloud.equipped : localWallet.wallet.equipped
-  const subjects: readonly SubjectView[] = useMemo(
-    () => (isStudent ? (cloud.catalog ?? []).map(subjectFromCatalog) : LOCAL_SUBJECTS),
-    [isStudent, cloud.catalog],
-  )
+  const identity: PlayerIdentity | null = cloud.state
+    ? { id: cloud.state.student_id, nickname: cloud.state.nickname, characterId: isCharacterId(cloud.state.character_id) ? cloud.state.character_id : 'green-slime' }
+    : null
+  const view = cloud.view
+  const outfit = cloud.outfit
+  const subjects: readonly SubjectView[] = useMemo(() => (cloud.catalog ?? []).map(subjectFromCatalog), [cloud.catalog])
 
-  const afterSignIn = (role: string | null) => {
-    if (role === 'parent') navigate({ name: 'parent', path: [] })
-    else if (role === 'admin') navigate({ name: 'admin', path: [] })
-    else if (role === 'student') navigate({ name: 'lobby' })
-  }
-
-  // ---- screen selection
-  const gameRoutes = ['lobby', 'map', 'world', 'chapters', 'quiz', 'shop', 'locker']
+  const gameRoutes = ['start', 'lobby', 'map', 'world', 'chapters', 'quiz', 'shop', 'locker', 'select', 'groups', 'import']
   const subject = 'subject' in route ? subjects.find((s) => s.id === route.subject) : undefined
   const level = subject ? LEVELS[subject.levelId] : undefined
 
-  let screen: string = route.name
-  if (gameRoutes.includes(route.name) || route.name === 'select') {
-    if (isStudent && (!cloud.state || !view)) screen = cloud.stateError ? 'cloud-error' : 'loading'
-    else if (gameRoutes.includes(route.name) && !identity) screen = 'select'
-    else if ((route.name === 'world' || route.name === 'chapters' || route.name === 'quiz') && (!subject || !level))
-      screen = isStudent && !cloud.catalog ? 'loading' : 'map'
-  }
-  if (screen === 'lobby' && isStudent && cloud.state && shouldOfferLegacyImport(localProfile, cloud.state.student_id, cloud.state.legacy_imported)) {
-    screen = 'import'
-  }
+  let screen: string = route.name === 'start' || !gameRoutes.includes(route.name) ? 'lobby' : route.name
+  if (!cloud.state || !view) screen = cloud.stateError ? 'cloud-error' : 'loading'
+  else if ((screen === 'world' || screen === 'chapters' || screen === 'quiz') && (!subject || !level)) screen = !cloud.catalog ? 'loading' : 'map'
+  if (screen === 'lobby' && cloud.state && shouldOfferLegacyImport(localProfile, cloud.state.student_id, cloud.state.legacy_imported)) screen = 'import'
+
+  const musicOverride = override?.screen === screen ? override.track : null
+  useEffect(() => {
+    playMusic(musicOverride ?? MUSIC[screen] ?? 'lobby')
+  }, [screen, musicOverride])
 
   const character = identity ? getCharacter(identity.characterId) : null
   const shopCategory: ShopCategory | undefined = route.name === 'shop' ? CATEGORIES.find((c) => c.id === route.category)?.id : undefined
@@ -117,7 +189,7 @@ export function App() {
           ? `${screen}:${subject?.id}`
           : screen
 
-  const cloudSubject = isStudent && subject?.cloudId ? cloud.catalog?.find((c) => c.id === subject.cloudId) : undefined
+  const cloudSubject = subject?.cloudId ? cloud.catalog?.find((c) => c.id === subject.cloudId) : undefined
 
   return (
     <div key={key} className="screen">
@@ -125,18 +197,7 @@ export function App() {
       {screen === 'cloud-error' && (
         <Waiting text={cloud.stateError ?? 'تعذّر الاتصال.'} actionLabel="إعادة المحاولة" onAction={() => void cloud.reloadState()} />
       )}
-      {screen === 'start' && (
-        <StartScreen
-          settings={settings}
-          onSettingsChange={updateSettings}
-          onStartSolo={() => navigate(isStudent ? { name: 'lobby' } : cloudEnabled ? { name: 'account' } : { name: 'select' })}
-          onParent={cloudEnabled ? () => navigate(signedIn && signedIn.role !== 'student' ? { name: 'parent', path: [] } : { name: 'account' }) : undefined}
-        />
-      )}
-      {screen === 'account' && (
-        <AccountScreen onGuest={() => navigate({ name: 'select' })} onBack={() => goBack({ name: 'start' })} onSignedIn={afterSignIn} />
-      )}
-      {screen === 'import' && isStudent && cloud.state && localProfile && (
+      {screen === 'import' && cloud.state && localProfile && (
         <LegacyImportScreen
           local={localProfile}
           studentId={cloud.state.student_id}
@@ -146,45 +207,23 @@ export function App() {
           }}
         />
       )}
-      {(screen === 'parent' || screen === 'admin') && route.name === screen && (
+      {screen === 'groups' && (
         <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
-          {screen === 'parent' ? (
-            <ParentApp path={route.path} navigate={(path) => navigate({ name: 'parent', path })} onExit={() => navigate({ name: 'start' })} />
-          ) : (
-            <AdminApp path={route.path} navigate={(path) => navigate({ name: 'admin', path })} onExit={() => navigate({ name: 'start' })} />
-          )}
+          <GroupsScreen onBack={() => goBack({ name: 'lobby' })} />
         </Suspense>
       )}
-      {screen === 'groups' &&
-        (isStudent ? (
-          <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
-            <GroupsScreen onBack={() => goBack({ name: 'lobby' })} />
-          </Suspense>
-        ) : auth.state.status === 'loading' || (signedIn && !signedIn.role) ? (
-          <Waiting text="جارٍ التحميل…" />
-        ) : (
-          <Waiting
-            text="لوحة الأبطال متاحة للطلاب بعد تسجيل الدخول بحساب أنشأه ولي الأمر."
-            actionLabel={signedIn ? 'العودة' : 'تسجيل الدخول'}
-            onAction={() => navigate(signedIn ? { name: 'start' } : { name: 'account' })}
-          />
-        ))}
       {screen === 'select' && (
         <CharacterSelectScreen
           profile={identity}
           onConfirm={(characterId, nickname) => {
-            if (isStudent) {
-              void (async () => {
-                if (nickname !== identity?.nickname) await cloud.setNickname(nickname).catch(() => {})
-                await cloud.setCharacter(characterId)
-              })()
-            } else {
-              saveLocalProfile(characterId, nickname)
-            }
-            if (gameRoutes.includes(route.name)) navigate(route, { replace: true })
-            else navigate({ name: 'lobby' })
+            void (async () => {
+              if (nickname !== identity?.nickname) await cloud.setNickname(nickname).catch(() => {})
+              await cloud.setCharacter(characterId)
+            })()
+            play('select')
+            navigate({ name: 'lobby' })
           }}
-          onBack={() => goBack({ name: 'start' })}
+          onBack={() => goBack({ name: 'lobby' })}
           play={play}
           reducedMotion={settings.reducedMotion}
           available={[...(view?.unlockedCharacters ?? [])]}
@@ -196,14 +235,14 @@ export function App() {
           profile={identity}
           view={view}
           outfit={outfit}
-          storageNote={isStudent ? 'حساب طالب · تقدّمك محفوظ في حسابك' : undefined}
+          storageNote="حساب طالب · تقدّمك محفوظ في حسابك"
           onChangeCharacter={() => navigate({ name: 'select' })}
           onOpenMap={() => navigate({ name: 'map' })}
           onOpenShop={() => navigate({ name: 'shop' })}
           onOpenLocker={() => navigate({ name: 'locker' })}
-          onOpenBoard={isStudent ? () => navigate({ name: 'groups' }) : undefined}
-          onAccount={cloudEnabled ? () => navigate({ name: 'account' }) : undefined}
-          onHome={() => goBack({ name: 'start' })}
+          onOpenBoard={() => navigate({ name: 'groups' })}
+          onAccount={() => navigate({ name: 'account' })}
+          onHome={() => navigate({ name: 'account' })}
           play={play}
           reducedMotion={settings.reducedMotion}
         />
@@ -214,7 +253,7 @@ export function App() {
           view={view}
           outfit={outfit}
           initialCategory={shopCategory}
-          onPurchase={isStudent ? cloud.purchase : localWallet.purchase}
+          onPurchase={cloud.purchase}
           onLocker={() => navigate({ name: 'locker' })}
           onBack={() => goBack({ name: 'lobby' })}
           play={play}
@@ -226,11 +265,11 @@ export function App() {
           character={character}
           nickname={identity.nickname}
           view={view}
-          equipped={equipped}
+          equipped={cloud.equipped}
           outfit={outfit}
-          onEquip={(id) => (isStudent ? void cloud.equip(id) : localWallet.equip(id))}
-          onUnequip={(slot) => (isStudent ? void cloud.unequip(slot) : localWallet.unequip(slot))}
-          onSelectCharacter={(id) => (isStudent ? void cloud.setCharacter(id) : saveLocalProfile(id, identity.nickname))}
+          onEquip={(id) => void cloud.equip(id)}
+          onUnequip={(slot) => void cloud.unequip(slot)}
+          onSelectCharacter={(id) => void cloud.setCharacter(id)}
           onShop={(category) => navigate({ name: 'shop', category })}
           onBack={() => goBack({ name: 'lobby' })}
           play={play}
@@ -241,11 +280,11 @@ export function App() {
           character={character}
           outfit={outfit}
           subjects={subjects}
-          loading={isStudent && !cloud.catalog}
-          error={isStudent ? cloud.catalogError : null}
+          loading={!cloud.catalog}
+          error={cloud.catalogError}
           onRetry={() => void cloud.reloadCatalog(true)}
           onEnter={(id) => {
-            play('confirm')
+            play('portal')
             navigate({ name: 'world', subject: id })
           }}
           onBack={() => goBack({ name: 'lobby' })}
@@ -264,33 +303,22 @@ export function App() {
           onMap={() => goBack({ name: 'map' })}
         />
       )}
-      {screen === 'chapters' && subject &&
-        (isStudent ? (
-          <LessonSelectScreen
-            subjectTitle={subject.title}
-            units={cloudSubject ? treeFromCatalog(cloudSubject, missionBestById(cloud.state?.mission_best)) : null}
-            error={!!cloud.catalogError && !cloud.catalog}
-            lastLessonId={null}
-            sourceNote={`الأسئلة من «${cloudSubject?.source_label || subject.title}». تقدّمك ومكافآتك محفوظة في حسابك ويتحقق منها الخادم.`}
-            onRetry={() => void cloud.reloadCatalog(true)}
-            onStartMission={(lesson, mission) => {
-              play('confirm')
-              navigate({ name: 'quiz', subject: subject.id, lesson, mission })
-            }}
-            onBackToWorld={() => goBack({ name: 'world', subject: subject.id })}
-          />
-        ) : (
-          <LocalLessons
-            subject={subject}
-            progress={progress}
-            onStartMission={(lesson, mission) => {
-              play('confirm')
-              navigate({ name: 'quiz', subject: subject.id, lesson, mission })
-            }}
-            onBackToWorld={() => goBack({ name: 'world', subject: subject.id })}
-          />
-        ))}
-      {screen === 'quiz' && route.name === 'quiz' && subject && character && isStudent && cloudSubject && (
+      {screen === 'chapters' && subject && (
+        <LessonSelectScreen
+          subjectTitle={subject.title}
+          units={cloudSubject ? treeFromCatalog(cloudSubject, cloud.state?.mission_best ?? {}) : null}
+          error={!!cloud.catalogError && !cloud.catalog}
+          lastLessonId={null}
+          sourceNote={`الأسئلة من «${cloudSubject?.source_label || subject.title}». تقدّمك ومكافآتك محفوظة في حسابك ويتحقق منها الخادم.`}
+          onRetry={() => void cloud.reloadCatalog(true)}
+          onStartMission={(lesson, mission) => {
+            play('missionStart')
+            navigate({ name: 'quiz', subject: subject.id, lesson, mission })
+          }}
+          onBackToWorld={() => goBack({ name: 'world', subject: subject.id })}
+        />
+      )}
+      {screen === 'quiz' && route.name === 'quiz' && subject && character && cloudSubject && (
         <CloudQuizScreen
           subject={cloudSubject}
           lessonId={route.lesson}
@@ -299,24 +327,8 @@ export function App() {
           outfit={outfit}
           reducedMotion={settings.reducedMotion}
           play={play}
+          onResults={() => setOverride({ screen, track: 'victory' })}
           onFinished={() => void cloud.reloadState()}
-          onShop={() => navigate({ name: 'shop' })}
-          onLessons={() => goBack({ name: 'chapters', subject: subject.id })}
-          onWorld={() => navigate({ name: 'world', subject: subject.id })}
-        />
-      )}
-      {screen === 'quiz' && route.name === 'quiz' && subject && character && !isStudent && (
-        <QuizScreen
-          subject={subject}
-          lessonId={route.lesson}
-          missionNumber={route.mission}
-          character={character}
-          outfit={outfit}
-          reducedMotion={settings.reducedMotion}
-          play={play}
-          onRecord={recordProgress}
-          onReward={(mission, summary) => localWallet.awardMissionRewards(subject.bankId ?? subject.id, mission, summary)}
-          previousCompletions={progress.missions[missionId(route.lesson, route.mission)]?.timesCompleted ?? 0}
           onShop={() => navigate({ name: 'shop' })}
           onLessons={() => goBack({ name: 'chapters', subject: subject.id })}
           onWorld={() => navigate({ name: 'world', subject: subject.id })}
@@ -326,35 +338,37 @@ export function App() {
   )
 }
 
-function missionBestById(best: Record<string, number> | undefined): Record<string, number> {
-  return best ?? {}
-}
-
-/** Guest mode: lessons from the bundled question bank, progress on this device. */
-function LocalLessons({
-  subject,
-  progress,
-  onStartMission,
-  onBackToWorld,
-}: {
-  subject: SubjectView
-  progress: LearningProgress
-  onStartMission: (lesson: string, mission: number) => void
-  onBackToWorld: () => void
-}) {
-  const { bank, error } = useQuestionBank(subject.bankId ?? '')
-  const units = useMemo(() => (bank ? treeFromBank(bank, progress) : null), [bank, progress])
-  return (
-    <LessonSelectScreen
-      subjectTitle={subject.title}
-      units={units}
-      error={error}
-      lastLessonId={progress.lastLessonId}
-      sourceNote="الأسئلة مأخوذة من كتيّب «زاد الطالب» للصف الثامن. يُحفظ تقدّمك على هذا الجهاز فقط."
-      onStartMission={onStartMission}
-      onBackToWorld={onBackToWorld}
-    />
-  )
+/** Loads the account's saved settings once after sign-in, then saves changes (debounced). */
+function usePreferenceSync(userId: string | null, settings: Settings, update: (p: Partial<Settings>) => void) {
+  const loadedFor = useRef<string | null>(null)
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if (!userId) {
+      loadedFor.current = null
+      return
+    }
+    if (loadedFor.current === userId) return
+    loadedFor.current = userId
+    let alive = true
+    api
+      .getMyPreferences()
+      .then((p) => {
+        if (!alive) return
+        if (p && Object.keys(p).length > 0) update(sanitizeSettings(p, settings))
+        setReady(true)
+      })
+      .catch(() => alive && setReady(true))
+    return () => {
+      alive = false
+    }
+    // settings is only the fallback for missing keys
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, update])
+  useEffect(() => {
+    if (!userId || !ready) return
+    const t = window.setTimeout(() => void api.saveMyPreferences({ ...settings }).catch(() => {}), 1200)
+    return () => window.clearTimeout(t)
+  }, [userId, ready, settings])
 }
 
 function Waiting({ text, actionLabel, onAction }: { text: string; actionLabel?: string; onAction?: () => void }) {

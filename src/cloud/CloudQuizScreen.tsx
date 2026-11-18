@@ -22,6 +22,7 @@ interface CloudQuizScreenProps {
   onShop: () => void
   /** Called after the server records a finished mission (refreshes XP and coins). */
   onFinished: () => void
+  onResults?: () => void
 }
 
 /** ساحة التحدّي backed by the server: one validated session per attempt. */
@@ -107,6 +108,7 @@ export function CloudQuizScreen(props: CloudQuizScreenProps) {
       }}
       onLessons={props.onLessons}
       onWorld={props.onWorld}
+      onResults={props.onResults}
     />
   )
 }

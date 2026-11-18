@@ -1,0 +1,32 @@
+/* Floating sound button: bottom corner (inline-end = left in Arabic), clear of the safe area. */
+.audio-fab {
+  position: fixed;
+  z-index: 40;
+  inset-inline-end: max(8px, env(safe-area-inset-left));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  border: 0;
+  color: var(--white);
+  background: rgb(42 29 92 / 0.88);
+  box-shadow: inset 0 0 0 3px var(--white), 0 4px 0 var(--ink);
+  cursor: pointer;
+}
+.audio-fab svg {
+  width: 100%;
+  height: 100%;
+}
+.audio-fab[data-muted] {
+  background: rgb(90 20 40 / 0.9);
+}
+.audio-fab:focus-visible {
+  outline: 3px dashed var(--sky-4);
+  outline-offset: 3px;
+}
+.audio-fab:active {
+  translate: 0 2px;
+  box-shadow: inset 0 0 0 3px var(--white), 0 2px 0 var(--ink);
+}

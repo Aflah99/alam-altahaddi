@@ -51,6 +51,8 @@ interface QuizScreenProps {
   onShop?: () => void
   onLessons: () => void
   onWorld: () => void
+  /** The results screen appeared (switches to victory music). */
+  onResults?: () => void
 }
 
 type View = 'quiz' | 'results' | 'review'
@@ -101,6 +103,7 @@ export function QuizArena({
   onShop,
   onLessons,
   onWorld,
+  onResults,
 }: Omit<QuizScreenProps, 'subject' | 'lessonId'> & { lesson: Lesson; missionCount: number; driver?: QuizDriver; onRestart?: () => void }) {
   const [reward, setReward] = useState<MissionReward | null>(null)
   const [legacy, setLegacy] = useState(false)
@@ -116,6 +119,7 @@ export function QuizArena({
   const [reaction, setReaction] = useState<'none' | 'happy' | 'oops'>('none')
   const reactionTimer = useRef<number | undefined>(undefined)
   const nextRef = useRef<HTMLButtonElement>(null)
+  const streak = useRef(0)
 
   const byId = useMemo(
     () => new Map(lesson.questions.map((q) => [q.id, revealed[q.id] ? { ...q, ...revealed[q.id] } : q])),
@@ -164,6 +168,7 @@ export function QuizArena({
       try {
         const res = await driver.submit(question.id, choice)
         reveal(question.id, res)
+        if (res.reward && !res.reward.already_rewarded && res.reward.coins > 0) window.setTimeout(() => play('coin'), 260)
         r = confirmWithVerdict(mission, res.feedback === 'correct')
       } catch (e) {
         setNetError(arabicError(e))
@@ -178,10 +183,12 @@ export function QuizArena({
     setMission(r.state)
     setFeedback(r.feedback)
     if (r.feedback === 'correct') {
-      play('confirm')
+      streak.current += 1
+      play(streak.current >= 3 && streak.current % 3 === 0 ? 'streak' : 'correct')
       react('happy')
     } else {
-      play('back')
+      streak.current = 0
+      play('wrong')
       react('oops')
     }
   }
@@ -208,7 +215,8 @@ export function QuizArena({
         })
         setReward(rewardFromServer(s))
         setView('results')
-        play('confirm')
+        onResults?.()
+        play(s.first_try_accuracy >= 70 ? 'missionComplete' : 'missionFail')
       } catch (e) {
         setNetError(arabicError(e))
       } finally {
@@ -239,6 +247,7 @@ export function QuizArena({
       try {
         const h = await driver.hint(state.questionId)
         setRevealed((prev) => ({ ...prev, [state.questionId]: { ...prev[state.questionId], hint: h } }))
+        play('hint')
       } catch (e) {
         setNetError(arabicError(e))
         return

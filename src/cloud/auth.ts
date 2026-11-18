@@ -13,6 +13,7 @@ export interface AuthApi {
   signInWithEmail: (email: string, password: string) => Promise<void>
   signUpParent: (email: string, password: string, displayName: string) => Promise<{ needsConfirmation: boolean }>
   sendPasswordReset: (email: string) => Promise<void>
+  resendConfirmation: (email: string) => Promise<void>
   updatePassword: (password: string) => Promise<void>
   signOut: () => Promise<void>
   /** Re-reads the role (e.g. right after an owner promotes an account). */

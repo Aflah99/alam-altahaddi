@@ -84,6 +84,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error } = await need().auth.resetPasswordForEmail(email.trim(), { redirectTo: authRedirectUrl() })
         if (error) throw error
       },
+      async resendConfirmation(email) {
+        const { error } = await need().auth.resend({ type: 'signup', email: email.trim(), options: { emailRedirectTo: authRedirectUrl() } })
+        if (error) throw error
+      },
       async updatePassword(password) {
         const { error } = await need().auth.updateUser({ password })
         if (error) throw error
