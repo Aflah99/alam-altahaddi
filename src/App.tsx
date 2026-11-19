@@ -32,6 +32,8 @@ import { WorldScreen } from './world/WorldScreen'
 const ParentApp = lazy(() => import('./parent/ParentApp'))
 const AdminApp = lazy(() => import('./admin/AdminApp'))
 const GroupsScreen = lazy(() => import('./groups/StudentGroupsScreen'))
+const RoomsHub = lazy(() => import('./multiplayer/RoomsHub').then((m) => ({ default: m.RoomsHub })))
+const RoomScreen = lazy(() => import('./multiplayer/RoomScreen').then((m) => ({ default: m.RoomScreen })))
 
 installAudio()
 
@@ -127,6 +129,7 @@ const MUSIC: Partial<Record<string, TrackId>> = {
   shop: 'shop',
   locker: 'shop',
   groups: 'lobby',
+  rooms: 'room',
   import: 'lobby',
 }
 
@@ -168,7 +171,7 @@ function StudentGame({
   const outfit = cloud.outfit
   const subjects: readonly SubjectView[] = useMemo(() => (cloud.catalog ?? []).map(subjectFromCatalog), [cloud.catalog])
 
-  const gameRoutes = ['start', 'lobby', 'map', 'world', 'chapters', 'quiz', 'shop', 'locker', 'select', 'groups', 'import']
+  const gameRoutes = ['start', 'lobby', 'map', 'world', 'chapters', 'quiz', 'shop', 'locker', 'select', 'groups', 'import', 'rooms', 'room', 'join']
   const subject = 'subject' in route ? subjects.find((s) => s.id === route.subject) : undefined
   const level = subject ? LEVELS[subject.levelId] : undefined
 
@@ -177,7 +180,8 @@ function StudentGame({
   else if ((screen === 'world' || screen === 'chapters' || screen === 'quiz') && (!subject || !level)) screen = !cloud.catalog ? 'loading' : 'map'
   if (screen === 'lobby' && cloud.state && shouldOfferLegacyImport(localProfile, cloud.state.student_id, cloud.state.legacy_imported)) screen = 'import'
 
-  const musicOverride = override?.screen === screen ? override.track : null
+  const [roomMusic, setRoomMusic] = useState<TrackId>('room')
+  const musicOverride = override?.screen === screen ? override.track : screen === 'room' ? roomMusic : null
   useEffect(() => {
     playMusic(musicOverride ?? MUSIC[screen] ?? 'lobby')
   }, [screen, musicOverride])
@@ -210,6 +214,32 @@ function StudentGame({
             navigate({ name: 'lobby' }, { replace: true })
           }}
         />
+      )}
+      {(screen === 'rooms' || screen === 'join') && view && (
+        <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
+          <RoomsHub
+            subjects={cloud.catalog ?? []}
+            allowed={view.controls.multiplayer_allowed}
+            inviteCode={route.name === 'join' ? route.code : undefined}
+            onEnter={(id) => navigate({ name: 'room', id }, { replace: true })}
+            onBack={() => goBack({ name: 'lobby' })}
+            play={play}
+          />
+        </Suspense>
+      )}
+      {screen === 'room' && route.name === 'room' && (
+        <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
+          <RoomScreen
+            roomId={route.id}
+            subjects={cloud.catalog ?? []}
+            onLeave={() => {
+              void cloud.reloadState()
+              navigate({ name: 'rooms' }, { replace: true })
+            }}
+            play={play}
+            setMusic={setRoomMusic}
+          />
+        </Suspense>
       )}
       {screen === 'groups' && (
         <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
@@ -244,6 +274,7 @@ function StudentGame({
           storageNote="حساب طالب · تقدّمك محفوظ في حسابك"
           onChangeCharacter={() => navigate({ name: 'select' })}
           onOpenMap={() => navigate({ name: 'map' })}
+          onOpenRooms={() => navigate({ name: 'rooms' })}
           onOpenShop={() => navigate({ name: 'shop' })}
           onOpenLocker={() => navigate({ name: 'locker' })}
           onOpenBoard={() => navigate({ name: 'groups' })}

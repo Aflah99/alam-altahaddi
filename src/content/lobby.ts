@@ -6,13 +6,18 @@ export interface InfoContent {
 
 /** Arabic copy for the player lobby. */
 
-export type LobbyPlaceId = 'map' | 'closet' | 'shop' | 'board'
+export type LobbyPlaceId = 'map' | 'rooms' | 'closet' | 'shop' | 'board'
 
 export const LOBBY_PLACES: Record<LobbyPlaceId, { label: string; info: InfoContent }> = {
   map: {
     // Opens the adventure map screen (no info panel).
     label: 'خريطة المغامرة',
     info: { title: 'خريطة المغامرة', paragraphs: [], status: '' },
+  },
+  rooms: {
+    // Opens the multiplayer rooms (no info panel).
+    label: 'غرف التحدّي',
+    info: { title: 'غرف التحدّي', paragraphs: [], status: '' },
   },
   closet: {
     // Opens the locker screen (no info panel).

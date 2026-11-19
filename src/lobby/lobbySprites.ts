@@ -188,3 +188,25 @@ export const BUSH: SpriteDef = {
   rows: ['..OOOOOO..', '.OLGGGGgO.', 'OLGGGGGGgO', 'OGGGGGGggO', 'OOOOOOOOOO'],
   palette: { O: INK, G: '#2fe04a', L: '#a6ff8f', g: '#16b13e' },
 }
+
+/** غرف التحدّي — a small arena tower with two pennants (original pixel art). */
+export const ARENA: SpriteDef = {
+  rows: [
+    '...R..........B.....',
+    '...RR.........BB....',
+    '...RRR........BBB...',
+    '...O..........O.....',
+    '.OOOOO.OOOO..OOOOO..',
+    '.OSSSO.OSSO..OSSSO..',
+    '.OSsSOOOSSOOOOSsSO..',
+    '.OSSSSSSSSSSSSSSSO..',
+    '.OSsSSSSYYYYSSSsSO..',
+    '.OSSSSSYYGGYYSSSSO..',
+    '.OSSSSSYGGGGYSSSSO..',
+    '.OSsSSSYGGGGYSSsSO..',
+    '.OSSSSSYGGGGYSSSSO..',
+    '.OSSSSSYGGGGYSSSSO..',
+    '.OOOOOOOOOOOOOOOOO..',
+  ],
+  palette: { O: INK, S: '#c9cfe6', s: '#9aa3c7', Y: '#ffd23f', G: '#3b2d7a', R: '#ff5d5d', B: '#4fb4ff' },
+}

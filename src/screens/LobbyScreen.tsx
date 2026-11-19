@@ -11,7 +11,7 @@ import { Sky } from '../components/Sky'
 import { FamilyIcon, MiniSlime, PlayArrow } from '../components/sprites'
 import { DEMO_NOTE, LOBBY_PLACES, type LobbyPlaceId } from '../content/lobby'
 import { LobbyPlace } from '../lobby/LobbyPlace'
-import { BUSH, PODIUM, PORTAL, PORTAL_SWIRL, STALL, TREE, WARDROBE, type SpriteDef } from '../lobby/lobbySprites'
+import { ARENA, BUSH, PODIUM, PORTAL, PORTAL_SWIRL, STALL, TREE, WARDROBE, type SpriteDef } from '../lobby/lobbySprites'
 import { CoinAmount } from '../economy/ui/Coin'
 import { LevelBar } from '../economy/ui/LevelBar'
 import type { WalletView } from '../economy/wallet'
@@ -26,6 +26,7 @@ interface LobbyScreenProps {
   onChangeCharacter: () => void
   /** خريطة المغامرة leads to the adventure map. */
   onOpenMap: () => void
+  onOpenRooms: () => void
   onOpenShop: () => void
   onOpenLocker: () => void
   /** Group leaderboards (signed-in students); falls back to an info panel. */
@@ -41,13 +42,14 @@ interface LobbyScreenProps {
 
 const PLACE_SPRITES: Record<LobbyPlaceId, SpriteDef> = {
   map: PORTAL,
+  rooms: ARENA,
   closet: WARDROBE,
   shop: STALL,
   board: PODIUM,
 }
 
 /** The player's home base: a small pixel village with entrances to future features. */
-export function LobbyScreen({ profile, character, view, outfit, onChangeCharacter, onOpenMap, onOpenShop, onOpenLocker, onOpenBoard, onAccount, storageNote = DEMO_NOTE, onHome, play, reducedMotion }: LobbyScreenProps) {
+export function LobbyScreen({ profile, character, view, outfit, onChangeCharacter, onOpenMap, onOpenRooms, onOpenShop, onOpenLocker, onOpenBoard, onAccount, storageNote = DEMO_NOTE, onHome, play, reducedMotion }: LobbyScreenProps) {
   const [open, setOpen] = useState<LobbyPlaceId | null>(null)
   const [cheering, setCheering] = useState(!reducedMotion)
   const cheerTimer = useRef<number | undefined>(undefined)
@@ -79,6 +81,7 @@ export function LobbyScreen({ profile, character, view, outfit, onChangeCharacte
   const openPlace = (id: LobbyPlaceId) => {
     play('confirm')
     if (id === 'map') onOpenMap()
+    else if (id === 'rooms') onOpenRooms()
     else if (id === 'shop') onOpenShop()
     else if (id === 'closet') onOpenLocker()
     else if (id === 'board' && onOpenBoard) onOpenBoard()

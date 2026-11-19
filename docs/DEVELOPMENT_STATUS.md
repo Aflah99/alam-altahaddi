@@ -46,7 +46,14 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
   per-word edit tolerance, negation/number/name safeguards, known-wrong answers, one free "unsure" retry; no AI).
   39 written questions derived from published MCQs: 23 reviewed and published, 16 drafts for a teacher.
   Admin editor supports written questions + grading tester; parents see results by question type.
-- Browser journeys: `scripts/e2e/journey-auth.mjs`, `journey-economy.mjs`, `journey-questions.mjs` (local stack).
+- **F5 غرف التحدّي** (migration `20261119000400`): private rooms (8-char codes, 3 h expiry, revocable, join rate limit,
+  never listed), presets-only reactions with cooldown, parent switches; server-owned match engine (`mp_tick`, server
+  clock, row locks, idempotent answers, personal question/option order) for 8 modes: speed, teams, survival, treasure,
+  boss, tournament, conquest, duel. Rewards: ≥3 answers, max 20 XP/15 coins per match, 5 rewarded matches/day.
+  Realtime on `mp_rooms.version` + polling fallback. Also fixes a Feature 4 flaw: all questions of a session shared
+  one option permutation (uncorrelated subquery).
+- Browser journeys: `scripts/e2e/journey-auth.mjs`, `journey-economy.mjs`, `journey-questions.mjs`,
+  `journey-multiplayer.mjs` (local stack).
 
 ## Security advisor notes (deliberate)
 - `authenticated_security_definer_function_executable` (50): intended API RPCs; each checks the caller's role inside.
