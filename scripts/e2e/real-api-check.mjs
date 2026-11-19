@@ -65,29 +65,42 @@ const lessonCount = subj?.units?.reduce((n, u) => n + u.lessons.length, 0) ?? 0
 check(lessonCount === 27, 'catalogue: 27 published lessons visible to a student', `got ${lessonCount}`)
 check(none(await anon.from('questions').select('id').limit(1)), 'signed-out visitors cannot read questions')
 check(none(await kidA.from('question_options').select('is_correct').limit(1)), 'students cannot read the answer key')
-const { count: qCount } = await admin.from('questions').select('id', { count: 'exact', head: true }).eq('status', 'published')
-check(qCount === 600, 'admin sees 600 published questions', `got ${qCount}`)
+const { count: qCount } = await admin.from('questions').select('id', { count: 'exact', head: true }).eq('status', 'published').eq('qtype', 'mcq')
+check(qCount === 600, 'admin sees the 600 published multiple-choice questions (unchanged)', `got ${qCount}`)
 const { data: flags } = await admin.from('academic_flags').select('key, status')
 check(flags?.length === 4 && flags.every((f) => f.status === 'open'), '4 academic review flags present and open')
 
 // ---------- server-validated quiz, rewards, replay
 const firstLesson = subj.units[0].lessons[0]
 const missionId = firstLesson.missions[0].id
-const answerKey = async (sessionQuestions) => {
-  const { data } = await admin.from('question_options').select('question_id, option_id').in('question_id', sessionQuestions.map((q) => q.id)).eq('is_correct', true)
-  return new Map(data.map((r) => [r.question_id, r.option_id]))
+// Test-only peek (as the synthetic admin): this session's opaque option keys '1'..'4' and written answers.
+const answerKey = async (sessionId, sessionQuestions) => {
+  const ids = sessionQuestions.map((q) => q.id)
+  const { data: order } = await admin.from('session_questions').select('question_id, option_order').eq('session_id', sessionId)
+  const { data: right } = await admin.from('question_options').select('question_id, option_id').in('question_id', ids).eq('is_correct', true)
+  const { data: written } = await admin.from('questions').select('id, accepted_answers').in('id', ids).eq('qtype', 'written')
+  const letter = new Map(right.map((r) => [r.question_id, r.option_id]))
+  const out = new Map()
+  for (const o of order) {
+    if (o.option_order) {
+      const k = String(o.option_order.indexOf(letter.get(o.question_id)) + 1)
+      out.set(o.question_id, { right: k, wrong: ['1', '2', '3', '4'].filter((x) => x !== k) })
+    }
+  }
+  for (const w of written ?? []) out.set(w.id, { written: true, right: w.accepted_answers[0], wrong: ['إجابة خاطئة أولى', 'إجابة خاطئة ثانية'] })
+  return out
 }
 async function playMission(kid, wrongFirst = 0) {
   const s = await rpc(kid, 'start_quiz_session', { p_mission: missionId })
-  const leaked = JSON.stringify(s).match(/is_correct|correct_option|explanation/)
-  const key = await answerKey(s.questions)
+  const leaked = JSON.stringify(s).match(/is_correct|correct_option|explanation|accepted/)
+  const key = await answerKey(s.session_id, s.questions)
   for (const [i, q] of s.questions.entries()) {
-    const right = key.get(q.id)
+    const k = key.get(q.id)
+    const send = (a) => (k.written ? rpc(kid, 'submit_written', { p_session: s.session_id, p_question: q.id, p_text: a }) : rpc(kid, 'submit_answer', { p_session: s.session_id, p_question: q.id, p_option: a }))
     if (i < wrongFirst) {
-      const wrong = ['a', 'b', 'c', 'd'].filter((o) => o !== right)
-      await rpc(kid, 'submit_answer', { p_session: s.session_id, p_question: q.id, p_option: wrong[0] })
-      await rpc(kid, 'submit_answer', { p_session: s.session_id, p_question: q.id, p_option: wrong[1] })
-    } else await rpc(kid, 'submit_answer', { p_session: s.session_id, p_question: q.id, p_option: right })
+      await send(k.wrong[0])
+      await send(k.wrong[1])
+    } else await send(k.right)
   }
   const done = await rpc(kid, 'complete_quiz_session', { p_session: s.session_id })
   return { s, done, leaked }
@@ -106,7 +119,7 @@ const stB = await rpc(kidB, 'get_my_game_state')
 check(stB.xp === (n - 3) * 10, 'missed answers earn nothing; no bonus under 70%', `xp ${stB.xp}`)
 
 // ---------- shop
-const cheap = (await kidA.from('shop_items').select('id, price').order('price').limit(1)).data[0]
+const cheap = (await kidA.from('shop_items').select('id, price').eq('in_shop', true).neq('category', 'characters').order('price').limit(1)).data[0]
 await rpc(kidA, 'purchase_item', { p_item: cheap.id })
 const st3 = await rpc(kidA, 'get_my_game_state')
 check(st3.coins === st1.coins - cheap.price && st3.xp === st1.xp, 'purchase spends coins, never XP')

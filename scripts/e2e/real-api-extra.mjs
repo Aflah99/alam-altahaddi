@@ -63,14 +63,14 @@ const kid3 = await signIn(`${c3Name}@${STUDENT_DOMAIN}`, creds.kidPass)
 
 // ---------- persistence across sessions
 await rpc(kid1, 'set_nickname', { p_nickname: 'برق تجريبي' })
-await rpc(kid1, 'set_character', { p_character: 'fox' })
+await rpc(kid1, 'set_character', { p_character: 'human-girl' })
 await kid1.auth.signOut()
 kid1 = await signIn(`${c1Name}@${STUDENT_DOMAIN}`, creds.kidPass)
 {
   const st = await rpc(kid1, 'get_my_game_state')
-  check(st.nickname === 'برق تجريبي' && st.character_id === 'fox', 'nickname and character persist after sign-out and sign-in', `${st.nickname}/${st.character_id}`)
+  check(st.nickname === 'برق تجريبي' && st.character_id === 'human-girl', 'nickname and character persist after sign-out and sign-in', `${st.nickname}/${st.character_id}`)
 }
-check(await fails(rpc(kid1, 'set_character', { p_character: 'owl' })), 'a locked character cannot be selected without buying it')
+check(await fails(rpc(kid1, 'set_character', { p_character: 'owl' })), 'a legendary creature cannot be selected without owning it')
 
 // ---------- legacy device progress: imported once, never credited
 {

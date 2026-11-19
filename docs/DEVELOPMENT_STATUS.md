@@ -32,7 +32,7 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
   admin and the only account. Server checks: `is_admin`/`admin_dashboard` succeed for it and fail for others.
   To add another admin later: the person signs up, proves the email, then run `grant_admin('<email>')` server-side.
 
-## Features 1–5 expansion (2026-11-18/19, in progress)
+## Features 1–5 expansion (2026-11-18/19, implemented and verified on production)
 - Checkpoint before the expansion: `main` @ `a32b5f4`; database snapshot in private schema `backup_20261118`
   (35 tables, no API access). Production had 1 admin, 0 students when the expansion began.
 - **F3 auth-first + F1 audio** (PR #21, merged): sign-in page is the first screen, no guest mode, role routing;
@@ -52,8 +52,18 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
   boss, tournament, conquest, duel. Rewards: ≥3 answers, max 20 XP/15 coins per match, 5 rewarded matches/day.
   Realtime on `mp_rooms.version` + polling fallback. Also fixes a Feature 4 flaw: all questions of a session shared
   one option permutation (uncorrelated subquery).
+- Migration `20261119000500`: admin-only read policies on the mp tables.
 - Browser journeys: `scripts/e2e/journey-auth.mjs`, `journey-economy.mjs`, `journey-questions.mjs`,
   `journey-multiplayer.mjs` (local stack).
+- **Real-service verification (production, synthetic accounts):** `real-api-check` all passed, `real-api-extra` 42/42,
+  `real-features-check` 37/37 (avatars, opaque keys, packages charged once + replay, parent controls, written grading,
+  room privacy/capacity, Realtime, forged-score rejection, all 8 modes finished with real players).
+  `live-check.mjs`: live site passes at iPhone SE/14, iPad portrait/landscape and desktop (sign-in first, RTL, Cairo,
+  no horizontal scroll, no failed requests), parent + admin areas on iPad.
+- **Load tests (`real-load-test.mjs`, 50 concurrent players, production):** speed 4808 answers, 0 errors, p95 ≈0.6 s;
+  survival 0 errors, p95 ≈0.2 s; teams 5000 answers, 0 errors, p95 ≈0.27 s. Not load-tested at their caps:
+  tournament (32), treasure (30), boss (20), conquest (6); they are verified functionally with small real groups only.
+- Open: 16 draft written questions await teacher review; the 4 academic flags stay open.
 
 ## Security advisor notes (deliberate)
 - `authenticated_security_definer_function_executable` (50): intended API RPCs; each checks the caller's role inside.
