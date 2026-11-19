@@ -14,7 +14,7 @@ for (const k of kids) ids.push((await k.auth.getUser()).data.user.id)
 check(true, 'synthetic parent, admin and 4 students sign in')
 
 // ---------- Feature 2: avatars, packages, upgrades
-const [k0, k1, k2, k3] = kids
+const [k0, k1, k2] = kids
 const st0 = await rpc(k0, 'get_my_game_state')
 check(['human-boy', 'human-girl'].includes(st0.character_id), 'new students start as a human avatar', st0.character_id)
 check(await fails(rpc(k0, 'set_character', { p_character: 'fox' })), 'creatures are locked (legendary collectibles)')
