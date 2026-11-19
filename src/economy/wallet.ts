@@ -2,7 +2,7 @@ import { getCosmetic, SLOT_ORDER, type CosmeticSlot } from '../characters/cosmet
 import { BASE_CHARACTER_IDS, isCharacterId, type CharacterId } from '../characters/roster'
 import type { MissionState, MissionSummary } from '../quiz/engine'
 import type { KeyValueStore } from '../quiz/progress'
-import { getItem, type CatalogItem } from './catalog'
+import { getItem, type CatalogItem } from './legacyCatalog'
 import { levelInfo, PASS_ACCURACY, REWARDS, type LevelInfo } from './config'
 
 /**

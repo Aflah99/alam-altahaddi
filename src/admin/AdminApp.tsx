@@ -1,6 +1,7 @@
 import { useAuth } from '../cloud/auth'
 import { AreaMessage, AreaShell } from '../cloud/AreaShell'
 import { BooksSection } from './sections/Books'
+import { EconomySection } from './sections/Economy'
 import { GenerateSection } from './sections/Generate'
 import { HomeSection } from './sections/Home'
 import { JobsSection } from './sections/Jobs'
@@ -19,6 +20,7 @@ const NAV = [
   { id: 'review', label: 'مراجعة الأسئلة' },
   { id: 'jobs', label: 'إدارة المهام' },
   { id: 'reports', label: 'التقارير' },
+  { id: 'economy', label: 'الاقتصاد والصناديق' },
   { id: 'settings', label: 'الإعدادات' },
 ] as const
 
@@ -67,6 +69,7 @@ export default function AdminApp({ path, navigate, onExit }: { path: string[]; n
       {section === 'review' && <ReviewSection key={arg?.includes(':') ? arg : 'all'} questionId={arg} navigate={navigate} />}
       {section === 'jobs' && <JobsSection jobId={arg} navigate={navigate} />}
       {section === 'reports' && <ReportsSection />}
+      {section === 'economy' && <EconomySection />}
       {section === 'settings' && <SettingsSection />}
     </AreaShell>
   )

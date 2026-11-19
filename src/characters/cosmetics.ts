@@ -58,7 +58,7 @@ export interface Anchors {
 
 const INK = '#2a1d5c'
 
-export const ANCHORS: Record<CharacterId, Anchors> = {
+export const ANCHORS: Partial<Record<CharacterId, Anchors>> = {
   'green-slime': { hat: { cx: 9, y: 0 }, neckY: 8, bow: { cx: 9, y: 9 }, badge: { x: 13, y: 9 }, bag: { x: 13, y: 1 }, belt: { y: 9, cx: 9 } },
   'blue-slime': { hat: { cx: 8, y: 2 }, neckY: 11, bow: { cx: 8, y: 12 }, badge: { x: 11, y: 11 }, bag: { x: 11, y: 2 }, belt: { y: 12, cx: 8 } },
   'little-robot': {

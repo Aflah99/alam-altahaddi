@@ -1,5 +1,5 @@
 import { supabase } from './client'
-import type { AnswerResult, CatalogSubject, GameState, QuizSession, Role, SessionSummary } from './types'
+import type { AnswerResult, CatalogSubject, GameState, PackageOpen, PackagesInfo, QuizSession, Role, SessionSummary } from './types'
 
 function db() {
   const c = supabase()
@@ -41,6 +41,11 @@ export const equipItem = (itemId: string) => call<void>('equip_item', { p_item: 
 export const unequipSlot = (slot: string) => call<void>('unequip_slot', { p_slot: slot })
 export const setCharacter = (characterId: string) => call<void>('set_character', { p_character: characterId })
 export const setNickname = (nickname: string) => call<void>('set_nickname', { p_nickname: nickname })
+export const setAppearance = (appearance: Record<string, unknown>) => call<Record<string, unknown>>('set_appearance', { p: appearance })
+export const getPackages = () => call<PackagesInfo>('get_packages')
+export const openPackage = (packageId: string, requestId: string) => call<PackageOpen>('open_package', { p_package: packageId, p_request: requestId })
+export const upgradeItem = (itemId: string, fromTier: number) =>
+  call<{ item: string; tier: number; cost: number; points: number }>('upgrade_item', { p_item: itemId, p_from_tier: fromTier })
 export const importLegacyProgress = (payload: unknown) =>
   call<{ missions: number; questions: number; verified: boolean; already_imported?: boolean }>('import_legacy_progress', { p_payload: payload })
 
@@ -66,6 +71,7 @@ export interface LeaderRow {
   rank: number
   nickname: string
   character_id: string
+  appearance?: Record<string, unknown>
   outfit: string[]
   xp: number
   is_me: boolean

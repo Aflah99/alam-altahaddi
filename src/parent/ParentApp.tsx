@@ -1,5 +1,6 @@
+import { characterOf } from '../cloud/useCloudGame'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { BASE_CHARACTER_IDS, getCharacter } from '../characters/roster'
+import { BASE_CHARACTER_IDS, } from '../characters/roster'
 import { invokeFunction } from '../cloud/api'
 import { PASSWORD_HINT, passwordProblem, useAuth } from '../cloud/auth'
 import { AreaMessage, AreaShell } from '../cloud/AreaShell'
@@ -14,6 +15,7 @@ export interface ChildRow {
   username: string
   nickname: string
   character_id: string
+  appearance?: Record<string, unknown>
   show_in_leaderboards: boolean
   created_at: string
 }
@@ -43,7 +45,7 @@ export default function ParentApp({ path, navigate, onExit }: ParentAppProps) {
     if (!c) return
     const { data, error: e } = await c
       .from('student_profiles')
-      .select('id, username, nickname, character_id, show_in_leaderboards, created_at')
+      .select('id, username, nickname, character_id, appearance, show_in_leaderboards, created_at')
       .order('created_at')
     if (e) setError(arabicError(e))
     else setChildren(data as ChildRow[])
@@ -115,7 +117,7 @@ function ChildrenSection({ kids, reload, onOpen }: { kids: ChildRow[] | null; re
   const [username, setUsername] = useState('')
   const [nickname, setNickname] = useState('')
   const [password, setPassword] = useState('')
-  const [character, setCharacter] = useState<string>('green-slime')
+  const [character, setCharacter] = useState<string>('human-boy')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [resetFor, setResetFor] = useState<string | null>(null)
@@ -174,7 +176,7 @@ function ChildrenSection({ kids, reload, onOpen }: { kids: ChildRow[] | null; re
             <div key={c.id} className="area__card">
               <strong>{c.nickname}</strong>
               <p className="area__muted">
-                اسم الدخول: <span dir="ltr">{c.username}</span> · {getCharacter(c.character_id as never).name}
+                اسم الدخول: <span dir="ltr">{c.username}</span> · {characterOf(c.character_id, c.appearance).name}
               </p>
               <div className="area__row">
                 <button type="button" className="area__btn" onClick={() => onOpen(c.id)}>
@@ -219,7 +221,7 @@ function ChildrenSection({ kids, reload, onOpen }: { kids: ChildRow[] | null; re
           <select value={character} onChange={(e) => setCharacter(e.target.value)}>
             {BASE_CHARACTER_IDS.map((id) => (
               <option key={id} value={id}>
-                {getCharacter(id).name}
+                {id === 'human-girl' ? 'بطلة' : 'بطل'}
               </option>
             ))}
           </select>

@@ -7,7 +7,11 @@
  * character blink, glance around and switch to a happy ^ ^ face.
  */
 
-export type CharacterId = 'green-slime' | 'blue-slime' | 'little-robot' | 'fox' | 'owl' | 'turtle'
+import { composeHuman, DEFAULT_APPEARANCE, HUMAN_EYES, sanitizeAppearance, type Appearance } from './human'
+
+export type CreatureId = 'green-slime' | 'blue-slime' | 'little-robot' | 'fox' | 'owl' | 'turtle'
+export type HumanId = 'human-boy' | 'human-girl'
+export type CharacterId = CreatureId | HumanId
 
 export interface CharacterDef {
   id: CharacterId
@@ -18,6 +22,12 @@ export interface CharacterDef {
   /** Top pixel of each 1×2 eye: [x, y]. */
   eyes: readonly (readonly [number, number])[]
   eyeColor: string
+  /** Eye size in sprite pixels (default 1×2). */
+  eyeSize?: readonly [number, number]
+  /** Colour of a 1-pixel highlight in each eye's top inner corner. */
+  glint?: string
+  /** Human avatar (supports the full wearable system). */
+  human?: boolean
 }
 
 const INK = '#2a1d5c'
@@ -230,16 +240,48 @@ const TURTLE: CharacterDef = {
   eyeColor: EYE,
 }
 
-/** Every character, including those unlocked in the shop. */
+/** Legendary collectible creatures (from surprise packages; earlier owners keep theirs). */
 export const ROSTER: readonly CharacterDef[] = [GREEN_SLIME, BLUE_SLIME, LITTLE_ROBOT, FOX, OWL, TURTLE]
 
-/** The original four characters: always available to every player, never locked. */
-export const BASE_CHARACTER_IDS: readonly CharacterId[] = ['green-slime', 'blue-slime', 'little-robot', 'fox']
+/** The two free human starters. */
+export const BASE_CHARACTER_IDS: readonly CharacterId[] = ['human-boy', 'human-girl']
+export const HUMAN_IDS: readonly HumanId[] = ['human-boy', 'human-girl']
 
-export function getCharacter(id: CharacterId): CharacterDef {
-  return ROSTER.find((c) => c.id === id) ?? GREEN_SLIME
+export const isHumanId = (id: unknown): id is HumanId => id === 'human-boy' || id === 'human-girl'
+
+const humanCache = new Map<string, CharacterDef>()
+
+/** A human avatar's sprite for an appearance (cached). */
+export function humanCharacter(id: HumanId, appearance?: unknown): CharacterDef {
+  const body = id === 'human-girl' ? 'girl' : 'boy'
+  const a: Appearance = appearance ? sanitizeAppearance(appearance, body) : DEFAULT_APPEARANCE[body]
+  const key = JSON.stringify(a)
+  let def = humanCache.get(key)
+  if (!def) {
+    const s = composeHuman(a)
+    def = {
+      id,
+      name: body === 'girl' ? 'البطلة' : 'البطل',
+      description: body === 'girl' ? 'بطلة مغامرة تحبّ المعرفة.' : 'بطل مغامر يحبّ المعرفة.',
+      rows: s.rows,
+      palette: s.palette,
+      eyes: HUMAN_EYES,
+      eyeColor: '#1a1a2e',
+      eyeSize: [2, 3],
+      glint: '#ffffff',
+      human: true,
+    }
+    if (humanCache.size > 200) humanCache.clear()
+    humanCache.set(key, def)
+  }
+  return def
+}
+
+export function getCharacter(id: CharacterId, appearance?: unknown): CharacterDef {
+  if (isHumanId(id)) return humanCharacter(id, appearance)
+  return ROSTER.find((c) => c.id === id) ?? humanCharacter('human-boy')
 }
 
 export function isCharacterId(value: unknown): value is CharacterId {
-  return ROSTER.some((c) => c.id === value)
+  return isHumanId(value) || ROSTER.some((c) => c.id === value)
 }
