@@ -24,12 +24,45 @@ interface QFull extends QRow {
   academic_note: string
   validation: { warnings?: string[]; model?: string; from_source_question?: boolean }
   options: { id: string; text: string; is_correct: boolean }[]
+  qtype?: 'mcq' | 'written'
+  accepted_answers?: string[]
+  rejected_answers?: string[]
+  grading?: { strict?: boolean }
   reviews: { action: string; from: string | null; to: string | null; note: string; at: string }[]
   page_text: string | null
 }
 
 const PAGE = 25
 const ORIGIN: Record<string, string> = { legacy_import: 'مستورد (Task 05)', ai_generated: 'مولَّد بالذكاء الاصطناعي', manual: 'يدوي' }
+
+const lines = (t: string) => t.split('\n').map((x) => x.trim()).filter(Boolean)
+
+/** Tries an answer against the server's grader (the same function students are graded by). */
+function GradingTester({ id }: { id: string }) {
+  const [answer, setAnswer] = useState('')
+  const [out, setOut] = useState<string | null>(null)
+  const VERDICT: Record<string, string> = { correct: 'مقبولة ✓', wrong: 'مرفوضة ✗', unsure: 'غير مؤكدة — يُطلب إعادة المحاولة' }
+  return (
+    <div className="area__row" style={{ gap: 8, alignItems: 'end' }}>
+      <label style={{ flex: 1 }}>
+        جرّب إجابة (يجب حفظ السؤال أولًا)
+        <input value={answer} onChange={(e) => setAnswer(e.target.value)} />
+      </label>
+      <button
+        type="button"
+        className="area__btn area__btn--ghost"
+        onClick={() =>
+          void rpc<{ verdict: string; normalized: string }>('admin_test_grading', { p_question: id, p_answer: answer })
+            .then((r) => setOut(`${VERDICT[r.verdict] ?? r.verdict} (بعد التطبيع: «${r.normalized}»)`))
+            .catch((e) => setOut(adminError(e)))
+        }
+      >
+        اختبار التصحيح
+      </button>
+      {out && <span role="status">{out}</span>}
+    </div>
+  )
+}
 
 /** مراجعة الأسئلة — filter, batch-review and edit every question (imported, generated, manual). */
 export function ReviewSection({ questionId, navigate }: { questionId?: string; navigate: AdminNav }) {
@@ -253,7 +286,7 @@ function QuestionEditor({
   navigate: AdminNav
 }) {
   const [q, setQ] = useState<QFull | null>(null)
-  const [form, setForm] = useState({ text: '', options: ['', '', '', ''], correct: 'a', hint: '', explanation: '', difficulty: 2, source_page: '', source_quote: '', lesson_id: lessonId ?? '', note: '' })
+  const [form, setForm] = useState({ qtype: 'mcq' as 'mcq' | 'written', accepted: '', rejected: '', strict: false, text: '', options: ['', '', '', ''], correct: 'a', hint: '', explanation: '', difficulty: 2, source_page: '', source_quote: '', lesson_id: lessonId ?? '', note: '' })
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -265,8 +298,12 @@ function QuestionEditor({
         if (!alive || !d) return
         setQ(d)
         setForm({
+          qtype: d.qtype ?? 'mcq',
+          accepted: (d.accepted_answers ?? []).join('\n'),
+          rejected: (d.rejected_answers ?? []).join('\n'),
+          strict: !!d.grading?.strict,
           text: d.text,
-          options: d.options.map((o) => o.text),
+          options: d.options.length === 4 ? d.options.map((o) => o.text) : ['', '', '', ''],
           correct: d.options.find((o) => o.is_correct)?.id ?? 'a',
           hint: d.hint,
           explanation: d.explanation,
@@ -288,7 +325,16 @@ function QuestionEditor({
     setMsg(null)
     try {
       const saved = await rpc<string>('admin_save_question', {
-        p_question: { id: id ?? '', ...form, correct_option: form.correct, source_page: form.source_page || '', source_label: q?.source_label ?? '' },
+        p_question: {
+          id: id ?? '',
+          ...form,
+          correct_option: form.correct,
+          source_page: form.source_page || '',
+          source_label: q?.source_label ?? '',
+          accepted_answers: lines(form.accepted),
+          rejected_answers: lines(form.rejected),
+          grading: { strict: form.strict },
+        },
       })
       setMsg({ ok: true, text: 'حُفظ السؤال.' })
       onSaved(saved)
@@ -359,7 +405,35 @@ function QuestionEditor({
         نص السؤال
         <textarea value={form.text} onChange={(e) => setForm({ ...form, text: e.target.value })} />
       </label>
-      {form.options.map((o, i) => {
+      <label>
+        نوع السؤال
+        <select value={form.qtype} onChange={(e) => setForm({ ...form, qtype: e.target.value as 'mcq' | 'written' })}>
+          <option value="mcq">اختيار من متعدد</option>
+          <option value="written">إجابة مكتوبة</option>
+        </select>
+      </label>
+      {form.qtype === 'written' && (
+        <>
+          <label>
+            الإجابات المقبولة (سطر لكل إجابة؛ الأولى تُعرض للطالب بعد الحل)
+            <textarea value={form.accepted} onChange={(e) => setForm({ ...form, accepted: e.target.value })} />
+          </label>
+          <label>
+            إجابات خاطئة معروفة (تُرفض دائمًا حتى لو كانت قريبة في الكتابة)
+            <textarea value={form.rejected} onChange={(e) => setForm({ ...form, rejected: e.target.value })} />
+          </label>
+          <label className="area__check">
+            <input type="checkbox" checked={form.strict} onChange={(e) => setForm({ ...form, strict: e.target.checked })} /> تصحيح صارم (للأسماء
+            والمصطلحات الشرعية): لا يُقبل خطأ إملائي، ويُطلب من الطالب إعادة المحاولة
+          </label>
+          {id && <GradingTester id={id} />}
+          <p className="area__muted">
+            يطبّع الخادم الإجابة (التشكيل، الهمزات، التاء المربوطة، الأرقام، «ال»، المسافات والترقيم)، ثم يقبل المطابقة أو خطأً إملائيًّا صغيرًا لكل كلمة،
+            ويرفض أي اختلاف في النفي أو الأرقام. الإجابات المشكوك فيها تُعاد للطالب دون احتساب محاولة.
+          </p>
+        </>
+      )}
+      {form.qtype === 'mcq' && form.options.map((o, i) => {
         const oid = 'abcd'[i]
         return (
           <label key={oid} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

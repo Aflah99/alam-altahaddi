@@ -120,6 +120,8 @@ export function QuizArena({
   const reactionTimer = useRef<number | undefined>(undefined)
   const nextRef = useRef<HTMLButtonElement>(null)
   const streak = useRef(0)
+  const [written, setWritten] = useState('')
+  const [unsure, setUnsure] = useState(false)
 
   const byId = useMemo(
     () => new Map(lesson.questions.map((q) => [q.id, revealed[q.id] ? { ...q, ...revealed[q.id] } : q])),
@@ -131,6 +133,7 @@ export function QuizArena({
       [id]: {
         ...prev[id],
         ...(r.correct_option ? { correctOptionId: r.correct_option } : {}),
+        ...(r.correct_answer ? { correctAnswer: r.correct_answer } : {}),
         ...(r.explanation !== null ? { explanation: r.explanation } : {}),
         ...(r.hint ? { hint: r.hint } : {}),
       },
@@ -161,15 +164,28 @@ export function QuizArena({
     if (!question || view !== 'quiz' || confirmExit || busy) return
     let r: { state: MissionState; feedback: Feedback }
     if (driver) {
-      const choice = state?.selected
+      const isWritten = question.type === 'written'
+      const choice = isWritten ? written.trim() : state?.selected
       if (!choice) return
+      if (isWritten && state?.attempts.some((a) => a.trim() === choice)) {
+        setNetError('جرّبت هذه الإجابة من قبل؛ اكتب إجابة مختلفة.')
+        return
+      }
       setBusy(true)
       setNetError(null)
       try {
-        const res = await driver.submit(question.id, choice)
+        if (isWritten) play('submitWritten')
+        const res = isWritten ? await driver.submitWritten(question.id, choice) : await driver.submit(question.id, choice)
+        if (res.feedback === 'unsure') {
+          setUnsure(true)
+          play('unsure')
+          return
+        }
+        setUnsure(false)
         reveal(question.id, res)
         if (res.reward && !res.reward.already_rewarded && res.reward.coins > 0) window.setTimeout(() => play('coin'), 260)
-        r = confirmWithVerdict(mission, res.feedback === 'correct')
+        r = confirmWithVerdict(isWritten ? selectOption(mission, choice) : mission, res.feedback === 'correct')
+        if (isWritten && r.feedback !== 'correct') setWritten('')
       } catch (e) {
         setNetError(arabicError(e))
         return
@@ -226,6 +242,8 @@ export function QuizArena({
     }
     setMission(m)
     setFeedback('none')
+    setWritten('')
+    setUnsure(false)
     if (m.finished) {
       const s = summarize(m)
       setSummary(s)
@@ -300,11 +318,12 @@ export function QuizArena({
         return
       }
       const onButton = e.target instanceof HTMLElement && !!e.target.closest('button')
+      const inField = e.target instanceof HTMLElement && !!e.target.closest('input, textarea')
       const n = Math.max('1234'.indexOf(e.key), '١٢٣٤'.indexOf(e.key))
-      if (n >= 0 && state) {
+      if (n >= 0 && state && question?.type !== 'written' && !inField) {
         e.preventDefault()
         choose(state.order[n])
-      } else if (e.key === 'Enter' && !onButton) {
+      } else if (e.key === 'Enter' && !onButton && !inField) {
         e.preventDefault()
         if (final) void advance()
         else void confirm()
@@ -360,6 +379,39 @@ export function QuizArena({
                 {question.question}
               </h2>
 
+              {question.type === 'written' ? (
+                <form
+                  className="qwrite"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    if (!final) void confirm()
+                  }}
+                >
+                  <label className="qwrite__label" htmlFor="qwrite-input">
+                    اكتب إجابتك (كلمة أو عبارة قصيرة)
+                  </label>
+                  <input
+                    id="qwrite-input"
+                    className="qwrite__input"
+                    type="text"
+                    dir="rtl"
+                    lang="ar"
+                    value={written}
+                    maxLength={200}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    disabled={final || busy}
+                    onChange={(e) => {
+                      setWritten(e.target.value)
+                      setUnsure(false)
+                    }}
+                  />
+                  {state.attempts.length > 0 && !final && (
+                    <p className="qwrite__tried">جرّبت: {state.attempts.join('، ')}</p>
+                  )}
+                </form>
+              ) : (
               <ul className="qcard__options">
                 {state.order.map((id, i) => {
                   const option = question.options.find((o) => o.id === id)!
@@ -389,8 +441,12 @@ export function QuizArena({
                   )
                 })}
               </ul>
+              )}
 
               <div ref={feedbackRef} className="qcard__feedback" role="status" aria-live="polite">
+                {!final && unsure && (
+                  <p className="qfb qfb--unsure">لم نتمكّن من التأكد من إجابتك. تحقّق من كتابة الكلمات وحاول مرة أخرى — هذه المحاولة لا تُحتسب.</p>
+                )}
                 {!final && feedback === 'try-again' && (
                   <p className="qfb qfb--retry">ليست هذه الإجابة الصحيحة — لا بأس، حاول مرة أخرى!</p>
                 )}
@@ -405,7 +461,7 @@ export function QuizArena({
                     {state.result === 'missed' ? (
                       <p className="qfb__title qfb__title--missed">
                         <strong>الإجابة الصحيحة: </strong>
-                        {question.options.find((o) => o.id === question.correctOptionId)?.text}
+                        {question.type === 'written' ? question.correctAnswer : question.options.find((o) => o.id === question.correctOptionId)?.text}
                       </p>
                     ) : (
                       <p className="qfb__title qfb__title--ok">إجابة صحيحة! أحسنت.</p>
@@ -465,7 +521,7 @@ export function QuizArena({
                 >
                   تلميح
                 </button>
-                <button type="button" className="pixel-button quiz__primary" onClick={() => void confirm()} disabled={!state.selected || busy}>
+                <button type="button" className="pixel-button quiz__primary" onClick={() => void confirm()} disabled={(question?.type === 'written' ? !written.trim() : !state.selected) || busy}>
                   {state.phase === 'retry' ? 'حاول مرة أخرى' : 'تأكيد الإجابة'}
                 </button>
               </>

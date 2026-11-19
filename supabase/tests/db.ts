@@ -95,3 +95,9 @@ export async function missionOf(legacyLesson: string, number = 1) {
 }
 
 export const wrongOf = (correct: string) => ['a', 'b', 'c', 'd'].filter((o) => o !== correct)
+
+/** Test-only: the display key ('1'..'4') of option `letter` in this session's shuffled order. */
+export async function keyOf(sessionId: string, questionId: string, letter: string | undefined): Promise<string> {
+  const [r] = await root<{ k: number }>(`select strpos(option_order, $3) k from public.session_questions where session_id = $1 and question_id = $2`, [sessionId, questionId, letter])
+  return String(r.k)
+}

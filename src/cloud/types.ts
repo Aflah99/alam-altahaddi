@@ -107,8 +107,9 @@ export interface SessionQuestion {
   text: string
   source_page: number | null
   source_label: string
+  type?: 'mcq' | 'written'
   has_hint: boolean
-  options: { id: 'a' | 'b' | 'c' | 'd'; text: string }[]
+  options: { id: string; text: string }[]
 }
 export interface QuizSession {
   session_id: string
@@ -117,10 +118,11 @@ export interface QuizSession {
   questions: SessionQuestion[]
 }
 export interface AnswerResult {
-  feedback: 'correct' | 'try-again' | 'revealed'
+  feedback: 'correct' | 'try-again' | 'revealed' | 'unsure'
   result: 'first' | 'assisted' | 'missed' | null
   attempt: number
-  correct_option: 'a' | 'b' | 'c' | 'd' | null
+  correct_option: string | null
+  correct_answer?: string | null
   explanation: string | null
   hint: string | null
   reward: { xp: number; coins: number; already_rewarded: boolean } | null

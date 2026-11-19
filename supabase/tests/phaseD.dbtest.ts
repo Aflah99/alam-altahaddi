@@ -1,6 +1,6 @@
 // Phase D (Features 1–5 expansion): preferences, avatars and cosmetic economy, written questions, multiplayer.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { as, createParent, createStudent, dbAvailable, pool, root, rpc } from './db'
+import { as, createAdmin, createParent, createStudent, dbAvailable, pool, root, rpc } from './db'
 
 beforeAll(async () => {
   if (!(await dbAvailable())) throw new Error('Local test database not available: run `npm run test:db`.')
@@ -176,5 +176,124 @@ describe('catalogue parity', () => {
       expect([r!.category, r!.rarity, r!.in_shop, r!.in_shop ? r!.price : null]).toEqual([w.slot, w.rarity, w.price !== null, w.price])
     }
     expect(db.length).toBe(WEARABLES.length + CREATURE_ITEMS.length)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Feature 4: shuffled MCQ keys and written questions
+// ---------------------------------------------------------------------------
+type QSession = { session_id: string; questions: { id: string; type: string; options: { id: string; text: string }[] }[] }
+type QAnswer = { feedback: string; result: string | null; correct_option: string | null; correct_answer: string | null; reward: { xp: number } | null }
+
+async function writtenMission() {
+  const [m] = await root<{ id: string }>(
+    `select mq.mission_id id from public.mission_questions mq join public.questions q on q.id = mq.question_id
+     where q.legacy_id = 'rv8.u4.l4.26a.w'`)
+  return m.id
+}
+
+describe('shuffled multiple choice', () => {
+  it('uses opaque keys 1–4, shuffles per session, and still grades correctly', async () => {
+    const { s } = await richKid(0)
+    const [m] = await root<{ id: string }>(`select m.id from public.missions m join public.lessons l on l.id = m.lesson_id where l.legacy_id = 'u1-l1' and m.number = 1`)
+    const positions = new Set<number>()
+    for (let i = 0; i < 6; i++) {
+      const sess = await rpc<QSession>(s, 'start_quiz_session', m.id)
+      const q = sess.questions[0]
+      expect(q.options.map((o) => o.id)).toEqual(['1', '2', '3', '4'])
+      expect(JSON.stringify(sess)).not.toMatch(/"id":"[abcd]"/)
+      const [{ text }] = await root<{ text: string }>(`select text from public.question_options where question_id = $1 and is_correct`, [q.id])
+      positions.add(q.options.findIndex((o) => o.text === text))
+      const key = String(q.options.findIndex((o) => o.text === text) + 1)
+      const r = await rpc<QAnswer>(s, 'submit_answer', sess.session_id, q.id, key)
+      expect(r.feedback).toBe('correct')
+      await expect(rpc(s, 'submit_answer', sess.session_id, sess.questions[1].id, 'a')).rejects.toThrow(/invalid option/)
+    }
+    expect(positions.size).toBeGreaterThan(1) // the correct answer moves between sessions
+  })
+})
+
+describe('written questions', () => {
+  it('appear in normal missions with no answer key in the API, and are graded on the server', async () => {
+    const { s } = await richKid(0)
+    const sess = await rpc<QSession>(s, 'start_quiz_session', await writtenMission())
+    const w = sess.questions.find((q) => q.type === 'written')!
+    expect(w.options).toEqual([])
+    expect(sess.questions.some((q) => q.type === 'mcq')).toBe(true)
+    expect(JSON.stringify(sess)).not.toMatch(/accepted|rejected|correct/)
+    expect(JSON.stringify(w)).not.toMatch(/لا يجوز|غير جائز/)
+    await expect(as(s, 'select accepted_answers from public.questions limit 1')).resolves.toEqual([])
+    await expect(rpc(s, 'grade_written', w.id, 'لا يجوز')).rejects.toThrow(/permission denied/)
+    const wrong = await rpc<QAnswer>(s, 'submit_written', sess.session_id, w.id, 'يجوز')
+    expect(wrong).toMatchObject({ feedback: 'try-again', result: null })
+    const right = await rpc<QAnswer>(s, 'submit_written', sess.session_id, w.id, 'لايجوز')
+    expect(right).toMatchObject({ feedback: 'correct', result: 'assisted', correct_answer: 'لا يجوز' })
+    await expect(rpc(s, 'submit_answer', sess.session_id, w.id, '1')).rejects.toThrow(/already answered|not a multiple-choice/)
+  })
+
+  it('accepts harmless variations and rejects wrong, negated, renamed or miscounted answers', async () => {
+    const g = async (legacy: string, ans: string) =>
+      (await root<{ v: string }>(`select public.grade_written(id, $2) v from public.questions where legacy_id = $1`, [legacy, ans]))[0].v
+    const cases: [string, string, string][] = [
+      ['rv8.u2.l1.info-3a.w', 'اللّسانُ.', 'correct'], // diacritics + punctuation
+      ['rv8.u2.l1.info-3a.w', 'لسان', 'correct'], // without the article
+      ['rv8.u2.l1.info-3a.w', 'الشفتان', 'wrong'], // a distractor
+      ['rv8.u3.l3.10.w', 'البهتن', 'correct'], // one missing letter
+      ['rv8.u3.l3.10.w', 'الغيبة', 'wrong'], // close concept, different meaning
+      ['rv8.u3.l5.6b.w', 'المكروه', 'wrong'],
+      ['rv8.u4.l4.26a.w', 'يجوز', 'wrong'], // negation removed
+      ['rv8.u4.l4.26a.w', 'غير جائز', 'correct'],
+      ['rv8.u4.l4.13d.w', '٥', 'correct'], // Arabic-Indic digit
+      ['rv8.u4.l4.13d.w', 'خمسه', 'correct'], // ة/ه
+      ['rv8.u4.l4.13d.w', '6', 'wrong'],
+      ['rv8.u4.l4.13d.w', 'ستة', 'wrong'],
+      ['rv8.u1.l6.3b.w', 'حيي بن اخطب', 'correct'], // hamza variant of a name
+      ['rv8.u1.l6.3b.w', 'حي بن اخطب', 'unsure'], // misspelt name: never silently accepted
+      ['rv8.u1.l6.3b.w', 'سعد بن معاذ', 'wrong'],
+      ['rv8.u3.l1.7a.w', 'النار', 'wrong'], // short word one letter off
+      ['rv8.u4.l1.3e.w', 'التشبيه التمثيلى', 'correct'],
+      ['rv8.u4.l1.3e.w', 'تشبيه بليغ', 'wrong'],
+      ['rv8.u4.l1.3e.w', '', 'wrong'],
+    ]
+    for (const [leg, ans, want] of cases) expect(await g(leg, ans), `${leg} «${ans}»`).toBe(want)
+  })
+
+  it('a doubtful answer gets one free retry; repeating the same text is refused', async () => {
+    const { s } = await richKid(0)
+    const [m] = await root<{ id: string }>(
+      `select mq.mission_id id from public.mission_questions mq join public.questions q on q.id = mq.question_id where q.legacy_id = 'rv8.u1.l6.3b.w'`)
+    const sess = await rpc<QSession>(s, 'start_quiz_session', m.id)
+    const [{ id }] = await root<{ id: string }>(`select id from public.questions where legacy_id = 'rv8.u1.l6.3b.w'`)
+    const u = await rpc<QAnswer>(s, 'submit_written', sess.session_id, id, 'حي بن اخطب')
+    expect(u.feedback).toBe('unsure')
+    const r = await rpc<QAnswer>(s, 'submit_written', sess.session_id, id, 'حيي بن أخطب')
+    expect(r).toMatchObject({ feedback: 'correct', result: 'first', reward: { xp: 10 } })
+  })
+
+  it('admins author written questions and test the grader; students cannot', async () => {
+    const admin = await createAdmin()
+    const { s } = await richKid(0)
+    const [{ id: lesson }] = await root<{ id: string }>(`select id from public.lessons where legacy_id = 'u1-l1'`)
+    const q = { lesson_id: lesson, qtype: 'written', text: 'ما عاصمة سلطنة عُمان؟', accepted_answers: ['مسقط'], rejected_answers: ['صلالة'], grading: { strict: true } }
+    await expect(rpc(s, 'admin_save_question', JSON.stringify(q))).rejects.toThrow()
+    await expect(rpc(admin, 'admin_save_question', JSON.stringify({ ...q, accepted_answers: [] }))).rejects.toThrow(/accepted answer/)
+    const id = await rpc<string>(admin, 'admin_save_question', JSON.stringify(q))
+    expect(await rpc(admin, 'admin_test_grading', id, 'مَسقط')).toMatchObject({ verdict: 'correct' })
+    expect(await rpc(admin, 'admin_test_grading', id, 'صلالة')).toMatchObject({ verdict: 'wrong' })
+    await expect(rpc(s, 'admin_test_grading', id, 'مسقط')).rejects.toThrow()
+    await rpc(admin, 'admin_set_question_status', [id], 'published', '')
+    const [row] = await root<{ status: string }>(`select status from public.questions where id = $1`, [id])
+    expect(row.status).toBe('published')
+    await root(`delete from public.questions where id = $1`, [id])
+    await root(`select public.refresh_lesson_missions($1)`, [lesson])
+  })
+
+  it('parents see results by question type', async () => {
+    const { s, parent } = await richKid(0)
+    const sess = await rpc<QSession>(s, 'start_quiz_session', await writtenMission())
+    const w = sess.questions.find((q) => q.type === 'written')!
+    await rpc(s, 'submit_written', sess.session_id, w.id, 'لا يجوز')
+    const r = await rpc<Record<string, { answered: number; first_try: number }>>(parent, 'parent_child_question_types', s, null)
+    expect(r.written).toMatchObject({ answered: 1, first_try: 1 })
   })
 })

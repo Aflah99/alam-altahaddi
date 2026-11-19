@@ -41,7 +41,12 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
   8 hairstyles, hijab), 62 wearables in 11 slots, 6 creatures now legendary collectibles, 3 surprise packages
   (60/150/350 coins, server CSPRNG, pity, replay-safe request ids), duplicates → نقاط التطوير (5/15/40/120/150),
   6 cosmetic tiers (costs 20/45/90/160/280), parent controls (`child_controls`), admin economy section.
-- Browser journeys: `scripts/e2e/journey-auth.mjs`, `journey-economy.mjs` (local stack).
+- **F4 questions** (migration `20261119000300`): MCQ options shuffled per session with opaque keys `1`–`4` (fixes a
+  leak: all 600 correct answers are stored as option `a`); written questions graded server-side (Arabic normalisation,
+  per-word edit tolerance, negation/number/name safeguards, known-wrong answers, one free "unsure" retry; no AI).
+  39 written questions derived from published MCQs: 23 reviewed and published, 16 drafts for a teacher.
+  Admin editor supports written questions + grading tester; parents see results by question type.
+- Browser journeys: `scripts/e2e/journey-auth.mjs`, `journey-economy.mjs`, `journey-questions.mjs` (local stack).
 
 ## Security advisor notes (deliberate)
 - `authenticated_security_definer_function_executable` (50): intended API RPCs; each checks the caller's role inside.

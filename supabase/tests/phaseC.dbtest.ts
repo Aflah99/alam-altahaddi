@@ -1,7 +1,7 @@
 // Phase C (Task 09): parent analytics, private groups, invitation codes, parent approval,
 // group-only leaderboards of verified XP, and isolation from outsiders.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { as, createAdmin, createParent, createStudent, dbAvailable, missionOf, pool, root, rpc, wrongOf } from './db'
+import { as, createAdmin, createParent, createStudent, dbAvailable, missionOf, pool, root, rpc, wrongOf, keyOf } from './db'
 
 beforeAll(async () => {
   if (!(await dbAvailable())) throw new Error('Local test database not available: run `npm run test:db`.')
@@ -15,12 +15,21 @@ async function play(student: string, lesson: string, wrongFirst = 0) {
   const m = await missionOf(lesson)
   const s = await rpc<Session>(student, 'start_quiz_session', m.id)
   for (const [i, q] of s.questions.entries()) {
+    if (!m.correct.has(q.id)) {
+      // Written question: answer wrongly twice, or with the accepted answer.
+      const [{ a }] = await root<{ a: string }>(`select accepted_answers[1] a from public.questions where id = $1`, [q.id])
+      if (i < wrongFirst) {
+        await rpc(student, 'submit_written', s.session_id, q.id, 'جواب خاطئ تماما')
+        await rpc(student, 'submit_written', s.session_id, q.id, 'إجابة أخرى مختلفة')
+      } else await rpc(student, 'submit_written', s.session_id, q.id, a)
+      continue
+    }
     const correct = m.correct.get(q.id)!
     if (i < wrongFirst) {
       const [w1, w2] = wrongOf(correct)
-      await rpc(student, 'submit_answer', s.session_id, q.id, w1)
-      await rpc(student, 'submit_answer', s.session_id, q.id, w2)
-    } else await rpc(student, 'submit_answer', s.session_id, q.id, correct)
+      await rpc(student, 'submit_answer', s.session_id, q.id, await keyOf(s.session_id, q.id, w1))
+      await rpc(student, 'submit_answer', s.session_id, q.id, await keyOf(s.session_id, q.id, w2))
+    } else await rpc(student, 'submit_answer', s.session_id, q.id, await keyOf(s.session_id, q.id, correct))
   }
   return rpc<{ total: number }>(student, 'complete_quiz_session', s.session_id)
 }

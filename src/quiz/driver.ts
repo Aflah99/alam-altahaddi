@@ -9,6 +9,7 @@ import type { OptionId } from '../questions/types'
  */
 export interface QuizDriver {
   submit: (questionId: string, option: OptionId) => Promise<AnswerResult>
+  submitWritten: (questionId: string, text: string) => Promise<AnswerResult>
   hint: (questionId: string) => Promise<string>
   complete: () => Promise<SessionSummary>
 }
