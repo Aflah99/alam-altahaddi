@@ -140,7 +140,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-areas:
-    'map treeA board'
+    'map rooms board'
     'closet player shop';
   align-items: end;
   justify-items: center;
@@ -275,7 +275,7 @@
   transform-origin: 50% 100%;
   animation: tree-sway 3.2s steps(2, jump-none) infinite alternate;
 }
-.lobby__tree--a { grid-area: treeA; margin-bottom: calc(var(--cell) * 0.5); }
+.lobby__tree--a { display: none; }
 .lobby__tree--b { display: none; }
 
 @keyframes tree-sway {
@@ -293,7 +293,7 @@
   .lobby__places {
     --cell: clamp(2px, min(0.7vw, 1dvh), 10px);
     grid-template-columns: repeat(7, auto);
-    grid-template-areas: 'treeA closet map player board shop treeB';
+    grid-template-areas: 'rooms closet map player board shop treeB';
     justify-content: space-evenly;
     width: 100%;
     max-width: 1400px;

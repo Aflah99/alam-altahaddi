@@ -13,6 +13,9 @@ export type Route =
   | { name: 'locker' }
   | { name: 'account' }
   | { name: 'groups' }
+  | { name: 'rooms' }
+  | { name: 'room'; id: string }
+  | { name: 'join'; code: string }
   | { name: 'import' }
   | { name: 'parent'; path: string[] }
   | { name: 'admin'; path: string[] }
@@ -38,6 +41,12 @@ export function routeToHash(route: Route): string {
       return '#/account'
     case 'groups':
       return '#/groups'
+    case 'rooms':
+      return '#/rooms'
+    case 'room':
+      return `#/room/${encodeURIComponent(route.id)}`
+    case 'join':
+      return `#/join/${encodeURIComponent(route.code)}`
     case 'import':
       return '#/account/import'
     case 'parent':
@@ -60,6 +69,9 @@ export function parseHash(hash: string): Route {
   if (parts[0] === 'shop') return parts[1] ? { name: 'shop', category: parts[1] } : { name: 'shop' }
   if (parts[0] === 'locker') return { name: 'locker' }
   if (parts[0] === 'groups') return { name: 'groups' }
+  if (parts[0] === 'rooms') return { name: 'rooms' }
+  if (parts[0] === 'room' && parts[1]) return { name: 'room', id: parts[1] }
+  if (parts[0] === 'join' && parts[1]) return { name: 'join', code: parts[1] }
   if (parts[0] === 'account') return parts[1] === 'import' ? { name: 'import' } : { name: 'account' }
   if (parts[0] === 'parent' || parts[0] === 'admin') return { name: parts[0], path: parts.slice(1) }
   if (parts[0] === 'quiz' && parts[1] && parts[2] && Number(parts[3]) >= 1) {

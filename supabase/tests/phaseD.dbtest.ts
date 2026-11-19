@@ -210,6 +210,10 @@ describe('shuffled multiple choice', () => {
       await expect(rpc(s, 'submit_answer', sess.session_id, sess.questions[1].id, 'a')).rejects.toThrow(/invalid option/)
     }
     expect(positions.size).toBeGreaterThan(1) // the correct answer moves between sessions
+    // …and between the questions of one session (each question has its own permutation).
+    const sess = await rpc<QSession>(s, 'start_quiz_session', m.id)
+    const [{ perms }] = await root<{ perms: number }>(`select count(distinct option_order)::int perms from public.session_questions where session_id = $1`, [sess.session_id])
+    expect(perms).toBeGreaterThan(1)
   })
 })
 
