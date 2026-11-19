@@ -5,7 +5,8 @@
  * always shuffles options before showing them.
  */
 
-export type OptionId = 'a' | 'b' | 'c' | 'd'
+/** 'a'–'d' in the bundled bank; opaque per-session keys '1'–'4' from the server. */
+export type OptionId = string
 export type Difficulty = 1 | 2 | 3
 export type ReviewStatus = 'approved' | 'flagged'
 
@@ -26,6 +27,10 @@ export interface Question {
   sourcePdfPage: number
   question: string
   options: readonly QuestionOption[]
+  /** 'written' questions have no options; the student types the answer. */
+  type?: 'mcq' | 'written'
+  /** Revealed by the server after a written question is finished. */
+  correctAnswer?: string
   correctOptionId: OptionId
   hint: string
   explanation: string

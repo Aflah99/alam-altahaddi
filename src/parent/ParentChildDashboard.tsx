@@ -168,8 +168,31 @@ export function ParentChildDashboard({ kids, childId, onPick }: { kids: ChildRow
           )}
         </>
       )}
+      <QuestionTypes key={`${child.id}:${range}`} studentId={child.id} days={range} />
       <ChildControls key={child.id} studentId={child.id} />
     </>
+  )
+}
+
+/** First-try accuracy by question type (multiple choice vs written answers). */
+function QuestionTypes({ studentId, days }: { studentId: string; days: number }) {
+  const [t, setT] = useState<Record<string, Counts> | null>(null)
+  useEffect(() => {
+    void supabase()
+      ?.rpc('parent_child_question_types', { p_student: studentId, p_days: days || null })
+      .then(({ data }) => setT((data as Record<string, Counts>) ?? {}))
+  }, [studentId, days])
+  if (!t || Object.keys(t).length === 0) return null
+  const label: Record<string, string> = { mcq: 'اختيار من متعدد', written: 'إجابات مكتوبة' }
+  return (
+    <div className="area__card" data-testid="question-types">
+      <h2 className="area__h2" style={{ marginTop: 0 }}>حسب نوع السؤال</h2>
+      <div className="area__grid">
+        {Object.entries(t).map(([k, c]) => (
+          <Stat key={k} value={`${ar(pct(c.first_try, c.answered))}٪`} label={`${label[k] ?? k}: صحيحة من المحاولة الأولى (${ar(c.answered)} سؤالًا)`} />
+        ))}
+      </div>
+    </div>
   )
 }
 

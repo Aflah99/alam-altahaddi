@@ -26,8 +26,9 @@ export function MistakeReview({ mission, byId, onBack }: MistakeReviewProps) {
         {items.map((s) => {
           const q = byId.get(s.questionId)
           if (!q) return null
-          const text = (id: string) => q.options.find((o) => o.id === id)?.text ?? ''
-          const wrong = s.attempts.filter((a) => a !== q.correctOptionId)
+          const isWritten = q.type === 'written'
+          const text = (id: string) => (isWritten ? id : (q.options.find((o) => o.id === id)?.text ?? ''))
+          const wrong = isWritten ? (s.result === 'missed' ? s.attempts : s.attempts.slice(0, -1)) : s.attempts.filter((a) => a !== q.correctOptionId)
           return (
             <li key={s.questionId} className="review__item">
               <p className="review__q">{q.question}</p>
@@ -40,7 +41,7 @@ export function MistakeReview({ mission, byId, onBack }: MistakeReviewProps) {
               {s.hintUsed && wrong.length === 0 && <p className="review__line">استخدمت التلميح قبل الإجابة.</p>}
               <p className="review__line review__line--right">
                 <strong>الإجابة الصحيحة: </strong>
-                {text(q.correctOptionId)}
+                {isWritten ? q.correctAnswer : text(q.correctOptionId)}
               </p>
               <p className="review__line">
                 <strong>شرح الإجابة: </strong>

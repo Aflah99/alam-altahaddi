@@ -35,6 +35,8 @@ export const requestHint = (sessionId: string, questionId: string) =>
   call<string>('request_hint', { p_session: sessionId, p_question: questionId })
 export const submitAnswer = (sessionId: string, questionId: string, option: string) =>
   call<AnswerResult>('submit_answer', { p_session: sessionId, p_question: questionId, p_option: option })
+export const submitWritten = (sessionId: string, questionId: string, text: string) =>
+  call<AnswerResult>('submit_written', { p_session: sessionId, p_question: questionId, p_text: text })
 export const completeQuizSession = (sessionId: string) => call<SessionSummary>('complete_quiz_session', { p_session: sessionId })
 export const purchaseItem = (itemId: string) => call<{ item: string; price: number; coins: number }>('purchase_item', { p_item: itemId })
 export const equipItem = (itemId: string) => call<void>('equip_item', { p_item: itemId })

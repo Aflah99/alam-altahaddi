@@ -1,7 +1,7 @@
 // Phase A (Task 07): roles, families, content protection, server-validated quizzes,
 // rewards, shop and legacy import — tested against real PostgreSQL with RLS.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { as, createAdmin, createParent, createStudent, dbAvailable, missionOf, pool, root, rpc, wrongOf } from './db'
+import { as, createAdmin, createParent, createStudent, dbAvailable, missionOf, pool, root, rpc, wrongOf, keyOf } from './db'
 
 let ok = false
 beforeAll(async () => {
@@ -120,8 +120,8 @@ describe('content protection', () => {
   it('legacy content: 600 published questions with 4 options and one correct answer each', async () => {
     const [r] = await root<{ q: number; bad: number; flagged: number; flags: number }>(`
       select (select count(*)::int from public.questions where origin = 'legacy_import' and status = 'published') as q,
-             (select count(*)::int from public.questions q where (select count(*) from public.question_options o where o.question_id = q.id) <> 4
-                or (select count(*) from public.question_options o where o.question_id = q.id and o.is_correct) <> 1) as bad,
+             (select count(*)::int from public.questions q where q.qtype = 'mcq' and ((select count(*) from public.question_options o where o.question_id = q.id) <> 4
+                or (select count(*) from public.question_options o where o.question_id = q.id and o.is_correct) <> 1)) as bad,
              (select count(*)::int from public.questions where needs_academic_review) as flagged,
              (select count(*)::int from public.academic_flags where origin = 'legacy_task05' and status = 'open') as flags`)
     expect(r).toEqual({ q: 600, bad: 0, flagged: 1, flags: 4 })
@@ -145,26 +145,26 @@ describe('server-validated quiz and rewards', () => {
     const sess = await rpc<Session>(s, 'start_quiz_session', m.id)
     const [q1, q2, q3, q4] = sess.questions.map((q) => q.id)
 
-    const a1 = await rpc<Answer>(s, 'submit_answer', sess.session_id, q1, m.correct.get(q1))
+    const a1 = await rpc<Answer>(s, 'submit_answer', sess.session_id, q1, await keyOf(sess.session_id, q1, m.correct.get(q1)))
     expect(a1).toMatchObject({ feedback: 'correct', result: 'first', reward: { xp: 10, coins: 10 } })
     expect(a1.explanation).toBeTruthy()
-    await expect(rpc(s, 'submit_answer', sess.session_id, q1, m.correct.get(q1))).rejects.toThrow(/already answered/)
+    await expect(rpc(s, 'submit_answer', sess.session_id, q1, await keyOf(sess.session_id, q1, m.correct.get(q1)))).rejects.toThrow(/already answered/)
 
     const hint = await rpc<string>(s, 'request_hint', sess.session_id, q2)
     expect(hint.length).toBeGreaterThan(0)
-    expect(await rpc<Answer>(s, 'submit_answer', sess.session_id, q2, m.correct.get(q2))).toMatchObject({ result: 'assisted', reward: { xp: 5, coins: 5 } })
+    expect(await rpc<Answer>(s, 'submit_answer', sess.session_id, q2, await keyOf(sess.session_id, q2, m.correct.get(q2)))).toMatchObject({ result: 'assisted', reward: { xp: 5, coins: 5 } })
 
     const w3 = wrongOf(m.correct.get(q3)!)
-    const t1 = await rpc<Answer>(s, 'submit_answer', sess.session_id, q3, w3[0])
+    const t1 = await rpc<Answer>(s, 'submit_answer', sess.session_id, q3, await keyOf(sess.session_id, q3, w3[0]))
     expect(t1).toMatchObject({ feedback: 'try-again', result: null, correct_option: null })
     expect(t1.hint).toBeTruthy()
-    await expect(rpc(s, 'submit_answer', sess.session_id, q3, w3[0])).rejects.toThrow(/already tried/)
-    expect(await rpc<Answer>(s, 'submit_answer', sess.session_id, q3, m.correct.get(q3))).toMatchObject({ result: 'assisted', reward: { xp: 5 } })
+    await expect(rpc(s, 'submit_answer', sess.session_id, q3, await keyOf(sess.session_id, q3, w3[0]))).rejects.toThrow(/already tried/)
+    expect(await rpc<Answer>(s, 'submit_answer', sess.session_id, q3, await keyOf(sess.session_id, q3, m.correct.get(q3)))).toMatchObject({ result: 'assisted', reward: { xp: 5 } })
 
     const w4 = wrongOf(m.correct.get(q4)!)
-    await rpc(s, 'submit_answer', sess.session_id, q4, w4[0])
-    const miss = await rpc<Answer>(s, 'submit_answer', sess.session_id, q4, w4[1])
-    expect(miss).toMatchObject({ feedback: 'revealed', result: 'missed', correct_option: m.correct.get(q4), reward: null })
+    await rpc(s, 'submit_answer', sess.session_id, q4, await keyOf(sess.session_id, q4, w4[0]))
+    const miss = await rpc<Answer>(s, 'submit_answer', sess.session_id, q4, await keyOf(sess.session_id, q4, w4[1]))
+    expect(miss).toMatchObject({ feedback: 'revealed', result: 'missed', correct_option: await keyOf(sess.session_id, q4, m.correct.get(q4)), reward: null })
   })
 
   it('cannot finish early, awards the mission bonus once, and replays never pay twice', async () => {
@@ -173,7 +173,7 @@ describe('server-validated quiz and rewards', () => {
     const play = async () => {
       const sess = await rpc<Session>(s, 'start_quiz_session', m.id)
       await expect(rpc(s, 'complete_quiz_session', sess.session_id)).rejects.toThrow(/not finished/)
-      for (const q of sess.questions) await rpc(s, 'submit_answer', sess.session_id, q.id, m.correct.get(q.id))
+      for (const q of sess.questions) await rpc(s, 'submit_answer', sess.session_id, q.id, await keyOf(sess.session_id, q.id, m.correct.get(q.id)))
       return rpc<{ total: number; first_try_accuracy: number; reward: { xp: number; coins: number; bonus: boolean; already_rewarded: number } }>(
         s, 'complete_quiz_session', sess.session_id)
     }
@@ -190,7 +190,7 @@ describe('server-validated quiz and rewards', () => {
     const s = await createStudent(await createParent())
     const m = await missionOf('u1-l3')
     const sess = await rpc<Session>(s, 'start_quiz_session', m.id)
-    for (const q of sess.questions) await rpc(s, 'submit_answer', sess.session_id, q.id, m.correct.get(q.id))
+    for (const q of sess.questions) await rpc(s, 'submit_answer', sess.session_id, q.id, await keyOf(sess.session_id, q.id, m.correct.get(q.id)))
     await rpc(s, 'complete_quiz_session', sess.session_id)
     const before = await root<{ n: number }>('select count(*)::int as n from public.reward_transactions where student_id = $1', [s])
     const repeat = await rpc<{ repeat: boolean }>(s, 'complete_quiz_session', sess.session_id)
@@ -204,7 +204,7 @@ describe('server-validated quiz and rewards', () => {
     const b = await createStudent(p)
     const m = await missionOf('u1-l1')
     const sess = await rpc<Session>(a, 'start_quiz_session', m.id)
-    await expect(rpc(b, 'submit_answer', sess.session_id, sess.questions[0].id, 'a')).rejects.toThrow(/session not active/)
+    await expect(rpc(b, 'submit_answer', sess.session_id, sess.questions[0].id, '1')).rejects.toThrow(/session not active/)
     await expect(as(b, `insert into public.reward_transactions (student_id, kind, ref, xp, coins) values ($1, 'question', 'x', 1000, 1000)`, [b])).rejects.toThrow(/permission denied/)
     await expect(rpc(p, 'start_quiz_session', m.id)).rejects.toThrow(/student account required/)
   })
@@ -215,8 +215,8 @@ describe('server-validated quiz and rewards', () => {
     try {
       const m = await missionOf('u2-l1')
       const sess = await rpc<Session>(s, 'start_quiz_session', m.id)
-      for (const q of sess.questions.slice(0, 3)) await rpc(s, 'submit_answer', sess.session_id, q.id, m.correct.get(q.id))
-      await expect(rpc(s, 'submit_answer', sess.session_id, sess.questions[3].id, 'a')).rejects.toThrow(/rate_limited/)
+      for (const q of sess.questions.slice(0, 3)) await rpc(s, 'submit_answer', sess.session_id, q.id, await keyOf(sess.session_id, q.id, m.correct.get(q.id)))
+      await expect(rpc(s, 'submit_answer', sess.session_id, sess.questions[3].id, '1')).rejects.toThrow(/rate_limited/)
     } finally {
       await root('update public.game_settings set max_answers_per_minute = 40')
     }

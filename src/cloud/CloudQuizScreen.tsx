@@ -54,6 +54,7 @@ export function CloudQuizScreen(props: CloudQuizScreenProps) {
   const driver: QuizDriver | null = session
     ? {
         submit: (qid, option) => api.submitAnswer(session.session_id, qid, option),
+        submitWritten: (qid, text) => api.submitWritten(session.session_id, qid, text),
         hint: (qid) => api.requestHint(session.session_id, qid),
         complete: async () => {
           const s = await api.completeQuizSession(session.session_id)
@@ -130,6 +131,7 @@ function buildLesson(subject: CatalogSubject, found: ReturnType<typeof findMissi
       sourcePdfPage: q.source_page ?? 0,
       sourceLabel: q.source_label,
       question: q.text,
+      type: q.type ?? 'mcq',
       options: q.options.map((o) => ({ id: o.id as OptionId, text: o.text })),
       // Unknown until the server reveals them after the student answers.
       correctOptionId: '' as OptionId,
