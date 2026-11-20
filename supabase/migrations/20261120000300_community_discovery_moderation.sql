@@ -252,7 +252,7 @@ begin
   if public.family_of(s.owner_id, v_user) then raise exception 'own_course' using errcode = 'P0001'; end if;
   if p_category not in ('incorrect', 'inappropriate', 'copyright', 'misleading', 'other') then raise exception 'invalid category' using errcode = '22023'; end if;
   -- Report text may quote the problem, so it is only cleaned, not rejected by the content rules.
-  v_d := left(btrim(regexp_replace(coalesce(p_details, ''), '[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f‪-‮⁦-⁩]', '', 'g')), 500);
+  v_d := left(btrim(regexp_replace(coalesce(p_details, ''), '[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f\u202a-\u202e\u2066-\u2069]', '', 'g')), 500);
   if exists (select 1 from public.course_reports where subject_id = p_subject and reporter_id = v_user and status = 'open') then
     return jsonb_build_object('status', 'already_reported');
   end if;

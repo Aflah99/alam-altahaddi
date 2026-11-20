@@ -320,7 +320,7 @@ create or replace function public.cc_clean(p text, p_min int, p_max int, p_field
 language plpgsql stable security definer set search_path = public as $$
 declare v text := coalesce(p, '');
 begin
-  v := regexp_replace(v, '[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f​‎‏‪-‮⁦-⁩﻿]', '', 'g');
+  v := regexp_replace(v, '[\u0001-\u0008\u000b\u000c\u000e-\u001f\u007f\u200b\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]', '', 'g');
   v := replace(v, E'\r', '');
   if p_multiline then
     v := btrim(regexp_replace(regexp_replace(v, '[ \t]+', ' ', 'g'), E'\n{3,}', E'\n\n', 'g'));
