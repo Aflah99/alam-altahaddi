@@ -19,6 +19,9 @@ export interface SubjectView {
   bankId?: string
   /** Cloud subject id. */
   cloudId?: string
+  /** A parent-created community course (not officially verified). */
+  community?: boolean
+  creator?: string
 }
 
 /** Kept for guest mode and older code paths. */
@@ -46,6 +49,8 @@ export function subjectFromCatalog(s: CatalogSubject): SubjectView {
     theme: s.theme,
     levelId: themePreset(s.theme).levelId,
     cloudId: s.id,
+    community: s.kind === 'community',
+    creator: s.creator_name,
   }
 }
 

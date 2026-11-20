@@ -25,6 +25,8 @@ export function rewardFromServer(s: SessionSummary): MissionReward {
     bonus: r.bonus,
     bonusEarlier: r.bonus_earlier,
     alreadyRewarded: r.already_rewarded,
+    community: s.community,
+    dailyLimitReached: s.daily_limit_reached,
     before: v(r.before),
     after: v(r.after),
   }

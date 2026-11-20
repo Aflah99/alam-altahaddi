@@ -141,7 +141,8 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   grid-template-areas:
     'map rooms board'
-    'closet player shop';
+    'closet player shop'
+    'discover discover discover';
   align-items: end;
   justify-items: center;
   width: min(100%, 860px);
@@ -198,6 +199,12 @@
   filter: drop-shadow(0 calc(var(--cell) * 0.8) 0 rgb(14 60 30 / 0.3));
 }
 
+.place--discover .place__sign {
+  white-space: normal;
+  max-width: 6.2em;
+  text-align: center;
+  line-height: 1.25;
+}
 .place__sign {
   padding: 2px 10px 4px;
   font-weight: 900;
@@ -293,7 +300,7 @@
   .lobby__places {
     --cell: clamp(2px, min(0.7vw, 1dvh), 10px);
     grid-template-columns: repeat(7, auto);
-    grid-template-areas: 'rooms closet map player board shop treeB';
+    grid-template-areas: 'rooms closet map player board shop discover';
     justify-content: space-evenly;
     width: 100%;
     max-width: 1400px;
@@ -309,9 +316,7 @@
     margin-bottom: calc(var(--cell) * -2);
   }
   .lobby__tree--b {
-    display: block;
-    grid-area: treeB;
-    margin-bottom: calc(var(--cell) * -2);
+    display: none;
   }
   .hud-actions {
     flex-direction: row;

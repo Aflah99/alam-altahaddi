@@ -36,6 +36,10 @@ export interface CatalogSubject {
   source_label: string
   updated_at: string
   units: CatalogUnit[]
+  /** Present for community courses (the official catalogue omits it). */
+  kind?: 'official' | 'community'
+  creator_name?: string
+  category?: string
 }
 
 export interface GameState {
@@ -125,7 +129,7 @@ export interface AnswerResult {
   correct_answer?: string | null
   explanation: string | null
   hint: string | null
-  reward: { xp: number; coins: number; already_rewarded: boolean } | null
+  reward: { xp: number; coins: number; already_rewarded: boolean; capped?: boolean; reason?: string } | null
 }
 export interface SessionSummary {
   total: number
@@ -135,6 +139,8 @@ export interface SessionSummary {
   hints_used: number
   first_try_accuracy: number
   repeat?: boolean
+  community?: boolean
+  daily_limit_reached?: boolean
   reward: {
     xp: number
     coins: number

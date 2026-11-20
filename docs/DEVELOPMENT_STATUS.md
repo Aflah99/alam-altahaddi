@@ -1,6 +1,6 @@
 # Development status — عالم التحدّي
 
-_Last updated: 2026-11-18. Keep this file short; update it before finishing each phase._
+_Last updated: 2026-11-20. Keep this file short; update it before finishing each phase._
 
 ## Architecture (one screen)
 - Frontend: React 19 + Vite + TS, static on GitHub Pages (`/alam-altahaddi/`). Guest mode works with no backend.
@@ -55,8 +55,23 @@ _Last updated: 2026-11-18. Keep this file short; update it before finishing each
 - Browser journeys: `scripts/e2e/journey-auth.mjs`, `journey-economy.mjs`, `journey-questions.mjs`,
   `journey-multiplayer.mjs` (local stack).
 
+
+## Feature 6 — المواد المجتمعية (community courses, 2026-11-20)
+- Design and rules: `docs/backend/COMMUNITY.md` (includes the **owner risk note** on immediate public publishing).
+- Checkpoint before the work: `main` @ `754d4c9`; database snapshot in private schema `backup_20261120` (20 tables, row counts verified).
+  PR #25 (verification scripts) had merge conflicts and was left untouched; its policy migration `20261119000500` was already live and is included here.
+- Migrations (applied to production, function bodies hash-compared with the tested local copies): `20261120000100` schema/access/rewards/game
+  integration, `…200` parent authoring API, `…300` discovery/enrolment/ratings/reports/admin, `…400` settings UPDATE fix (production
+  enforces WHERE on UPDATE), `…500` search_path hardening.
+- Frontend: parent «إنشاء مادة تعليمية» (editor, bulk paste, copyable external-AI prompt, preview, publish/share, children's courses),
+  student «اكتشف المواد» + lobby building + map labelling, admin «المواد المجتمعية» (courses, reports, insights, settings, blocklist).
+- Tests: unit 156 (12 parser), `test:db` 112 (30 community), local browser journeys (auth/economy/questions/multiplayer/community),
+  and `scripts/e2e/real-community-check.mjs` on the real project: ~70 checks, all passed with synthetic accounts (deleted afterwards).
+- Limits: AI is never called; automatic content checks are rule-based only; no email/notification to creators on suspension; multiplayer with
+  community courses pays no rewards; invitation links are `#/join-course/<code>`.
+
 ## Security advisor notes (deliberate)
-- `authenticated_security_definer_function_executable` (50): intended API RPCs; each checks the caller's role inside.
+- `authenticated_security_definer_function_executable` (~100 incl. Feature 6 RPCs): intended API RPCs; each checks the caller's role inside.
 - `rls_enabled_no_policy` on `group_join_attempts`: server-only table, written by `join_group_with_code`.
 - Performance INFO (unindexed FKs, duplicate permissive SELECT policies): negligible at this scale.
 

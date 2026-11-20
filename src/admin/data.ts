@@ -97,7 +97,7 @@ export const statusChip = (s: string) =>
   `area__chip ${s === 'published' ? 'area__chip--ok' : s === 'rejected' || s === 'archived' ? 'area__chip--bad' : s === 'needs_review' || s === 'draft' ? 'area__chip--warn' : ''}`
 
 export async function loadSubjects(): Promise<SubjectRow[]> {
-  const { data, error } = await db().from('subjects').select('*').order('sort_order').order('name_ar')
+  const { data, error } = await db().from('subjects').select('*').eq('kind', 'official').order('sort_order').order('name_ar')
   if (error) throw error
   return data as SubjectRow[]
 }

@@ -22,6 +22,8 @@ interface AdventureMapScreenProps {
   loading?: boolean
   onRetry?: () => void
   onEnter: (subject: string) => void
+  /** Opens اكتشف المواد. */
+  onDiscover?: () => void
   onBack: () => void
 }
 
@@ -29,9 +31,12 @@ interface AdventureMapScreenProps {
  * World selection. Each configured subject gets a portal on the island; the
  * locked islands in the sky are scenery only (no names, not interactive).
  */
-export function AdventureMapScreen({ character, outfit, subjects, error, loading, onRetry, onEnter, onBack }: AdventureMapScreenProps) {
+export function AdventureMapScreen({ character, outfit, subjects, error, loading, onRetry, onEnter, onDiscover, onBack }: AdventureMapScreenProps) {
   const [selected, setSelected] = useState<string | null>(null)
   const subject = subjects.find((s) => s.id === selected) ?? subjects[0]
+  // Official subjects keep the portals; community courses are reached from the list below and are labelled.
+  const official = subjects.filter((s) => !s.community)
+  const portalSubjects = official.length > 0 ? official : subjects
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -65,7 +70,7 @@ export function AdventureMapScreen({ character, outfit, subjects, error, loading
             <div className="amap__island" data-count={Math.min(subjects.length, 3)}>
               <PixelSprite rows={TREE.rows} palette={TREE.palette} className="amap__tree" />
               <div className="amap__path" aria-hidden="true" />
-              {subjects.slice(0, 3).map((s, i) => (
+              {portalSubjects.slice(0, 3).map((s, i) => (
                 <button
                   key={s.id}
                   type="button"
@@ -95,15 +100,26 @@ export function AdventureMapScreen({ character, outfit, subjects, error, loading
                     {subjects.map((s) => (
                       <button key={s.id} type="button" className="amap__chip" aria-pressed={s.id === subject.id} onClick={() => setSelected(s.id)}>
                         {s.title}
+                        {s.community ? ' · مجتمعية' : ''}
                       </button>
                     ))}
                   </div>
                 )}
                 <h2 className="amap__subject">{subject.title}</h2>
+                {subject.community ? (
+                  <p className="amap__note" role="note">مادة مجتمعية · أنشأها {subject.creator ?? 'ولي أمر'} · غير معتمدة رسميًا</p>
+                ) : (
+                  <p className="amap__note">مادة أساسية</p>
+                )}
                 <p className="amap__summary">{subject.summary}</p>
                 <button type="button" className="pixel-button amap__enter" onClick={() => onEnter(subject.id)}>
                   ادخل العالم
                 </button>
+                {onDiscover && (
+                  <button type="button" className="pixel-button amap__enter" onClick={onDiscover}>
+                    اكتشف المزيد من المواد
+                  </button>
+                )}
                 <p className="amap__note">مناطق أخرى مغلقة الآن، وستُفتح عند إضافة موادها.</p>
               </>
             ) : error ? (

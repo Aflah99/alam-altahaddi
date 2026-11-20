@@ -11,7 +11,7 @@ import { Sky } from '../components/Sky'
 import { FamilyIcon, MiniSlime, PlayArrow } from '../components/sprites'
 import { DEMO_NOTE, LOBBY_PLACES, type LobbyPlaceId } from '../content/lobby'
 import { LobbyPlace } from '../lobby/LobbyPlace'
-import { ARENA, BUSH, PODIUM, PORTAL, PORTAL_SWIRL, STALL, TREE, WARDROBE, type SpriteDef } from '../lobby/lobbySprites'
+import { ARENA, BUSH, LIBRARY, PODIUM, PORTAL, PORTAL_SWIRL, STALL, TREE, WARDROBE, type SpriteDef } from '../lobby/lobbySprites'
 import { CoinAmount } from '../economy/ui/Coin'
 import { LevelBar } from '../economy/ui/LevelBar'
 import type { WalletView } from '../economy/wallet'
@@ -29,6 +29,8 @@ interface LobbyScreenProps {
   onOpenRooms: () => void
   onOpenShop: () => void
   onOpenLocker: () => void
+  /** اكتشف المواد: community courses. */
+  onOpenDiscover?: () => void
   /** Group leaderboards (signed-in students); falls back to an info panel. */
   onOpenBoard?: () => void
   /** Account / sign-in screen. */
@@ -46,10 +48,11 @@ const PLACE_SPRITES: Record<LobbyPlaceId, SpriteDef> = {
   closet: WARDROBE,
   shop: STALL,
   board: PODIUM,
+  discover: LIBRARY,
 }
 
 /** The player's home base: a small pixel village with entrances to future features. */
-export function LobbyScreen({ profile, character, view, outfit, onChangeCharacter, onOpenMap, onOpenRooms, onOpenShop, onOpenLocker, onOpenBoard, onAccount, storageNote = DEMO_NOTE, onHome, play, reducedMotion }: LobbyScreenProps) {
+export function LobbyScreen({ profile, character, view, outfit, onChangeCharacter, onOpenMap, onOpenRooms, onOpenShop, onOpenLocker, onOpenDiscover, onOpenBoard, onAccount, storageNote = DEMO_NOTE, onHome, play, reducedMotion }: LobbyScreenProps) {
   const [open, setOpen] = useState<LobbyPlaceId | null>(null)
   const [cheering, setCheering] = useState(!reducedMotion)
   const cheerTimer = useRef<number | undefined>(undefined)
@@ -84,6 +87,7 @@ export function LobbyScreen({ profile, character, view, outfit, onChangeCharacte
     else if (id === 'rooms') onOpenRooms()
     else if (id === 'shop') onOpenShop()
     else if (id === 'closet') onOpenLocker()
+    else if (id === 'discover' && onOpenDiscover) onOpenDiscover()
     else if (id === 'board' && onOpenBoard) onOpenBoard()
     else setOpen(id)
   }

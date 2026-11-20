@@ -6,6 +6,7 @@ import { PASSWORD_HINT, passwordProblem, useAuth } from '../cloud/auth'
 import { AreaMessage, AreaShell } from '../cloud/AreaShell'
 import { arabicError, supabase } from '../cloud/client'
 import { USERNAME_RE } from '../cloud/config'
+import { CoursesSection } from './community/CoursesSection'
 import { ParentChildDashboard } from './ParentChildDashboard'
 import { ParentGroups } from './ParentGroups'
 import { ParentPrivacy } from './ParentPrivacy'
@@ -29,6 +30,7 @@ interface ParentAppProps {
 const NAV = [
   { id: 'children', label: 'أبنائي' },
   { id: 'results', label: 'النتائج' },
+  { id: 'courses', label: 'إنشاء مادة تعليمية' },
   { id: 'groups', label: 'المجموعات' },
   { id: 'privacy', label: 'الخصوصية والحساب' },
 ] as const
@@ -107,6 +109,7 @@ export default function ParentApp({ path, navigate, onExit }: ParentAppProps) {
       {section === 'results' && children && (
         <ParentChildDashboard kids={children} childId={childId ?? children[0]?.id} onPick={(id) => navigate(['results', id])} />
       )}
+      {section === 'courses' && <CoursesSection path={path.slice(1)} navigate={(p) => navigate(['courses', ...p.slice(1)])} />}
       {section === 'groups' && children && <ParentGroups kids={children} />}
       {section === 'privacy' && children && <ParentPrivacy kids={children} reload={load} />}
     </AreaShell>

@@ -14,6 +14,8 @@ export type Route =
   | { name: 'account' }
   | { name: 'groups' }
   | { name: 'rooms' }
+  | { name: 'discover' }
+  | { name: 'joincourse'; code: string }
   | { name: 'room'; id: string }
   | { name: 'join'; code: string }
   | { name: 'import' }
@@ -43,6 +45,10 @@ export function routeToHash(route: Route): string {
       return '#/groups'
     case 'rooms':
       return '#/rooms'
+    case 'discover':
+      return '#/discover'
+    case 'joincourse':
+      return `#/join-course/${encodeURIComponent(route.code)}`
     case 'room':
       return `#/room/${encodeURIComponent(route.id)}`
     case 'join':
@@ -70,6 +76,8 @@ export function parseHash(hash: string): Route {
   if (parts[0] === 'locker') return { name: 'locker' }
   if (parts[0] === 'groups') return { name: 'groups' }
   if (parts[0] === 'rooms') return { name: 'rooms' }
+  if (parts[0] === 'discover') return { name: 'discover' }
+  if (parts[0] === 'join-course' && parts[1]) return { name: 'joincourse', code: parts[1] }
   if (parts[0] === 'room' && parts[1]) return { name: 'room', id: parts[1] }
   if (parts[0] === 'join' && parts[1]) return { name: 'join', code: parts[1] }
   if (parts[0] === 'account') return parts[1] === 'import' ? { name: 'import' } : { name: 'account' }

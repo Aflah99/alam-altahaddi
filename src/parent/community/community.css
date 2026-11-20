@@ -1,0 +1,48 @@
+/* Parent area: course authoring. Uses the shared .area__* look; only layout helpers live here. */
+.cc-list, .cc-editor, .cc-content, .cc-publish, .cc-preview { display: grid; gap: 14px; min-width: 0; }
+.cc-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.cc-course header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cc-inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cc-inline input { flex: 1 1 200px; min-height: 44px; min-width: 0; }
+.cc-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-actions .area__btn, .cc-row__top .area__btn { min-height: 44px; min-width: 44px; }
+.cc-unit__head, .cc-lesson__head, .cc-bulk__head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.cc-unit__title { margin: 0; font-size: 1.1rem; }
+.cc-lesson { border-top: 1px solid rgba(0, 0, 0, 0.12); padding-block: 10px; }
+.cc-lesson__toggle { background: none; border: 0; font: inherit; font-weight: 700; cursor: pointer; padding: 10px 4px; min-height: 44px; text-align: start; color: inherit; }
+.cc-lesson__body { display: grid; gap: 10px; padding-inline-start: 10px; }
+.cc-questions { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cc-q { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; padding: 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.04); }
+.cc-q__main { flex: 1 1 260px; min-width: 0; }
+.cc-q__text { margin: 0 0 4px; overflow-wrap: anywhere; white-space: pre-line; }
+.cc-row__opts { margin: 4px 0; padding: 0; list-style: none; display: grid; gap: 2px; overflow-wrap: anywhere; }
+.cc-row__opts .is-correct { color: #11502c; font-weight: 700; }
+.cc-option { display: flex; gap: 8px; align-items: center; margin-block: 6px; }
+.cc-option input[type='radio'] { width: 24px; height: 24px; flex: none; }
+.cc-option input:not([type='radio']) { flex: 1; min-width: 0; min-height: 44px; }
+.cc-option__letter { font-weight: 700; width: 1.4em; text-align: center; }
+.cc-options { border: 1px solid rgba(0, 0, 0, 0.15); border-radius: 8px; padding: 8px 12px; margin: 0; min-width: 0; }
+.cc-radio { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; min-height: 44px; }
+.cc-radio input { width: 22px; height: 22px; margin-top: 2px; flex: none; }
+.cc-paste { width: 100%; font: inherit; font-size: 1rem; line-height: 1.6; padding: 10px; box-sizing: border-box; direction: rtl; }
+.cc-format { white-space: pre-wrap; background: rgba(0, 0, 0, 0.05); padding: 10px; border-radius: 8px; overflow-x: auto; font: inherit; line-height: 1.7; }
+.cc-summary { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cc-rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.cc-row { border: 2px solid rgba(0, 0, 0, 0.12); border-radius: 10px; padding: 10px; background: #fff; }
+.cc-row--bad { border-color: #c0392b; background: #fff6f5; }
+.cc-row--warn { border-color: #d9a400; background: #fffbea; }
+.cc-row__top { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cc-row__spacer { flex: 1; }
+.cc-row__text { margin: 6px 0; white-space: pre-line; overflow-wrap: anywhere; font-weight: 600; }
+.cc-warn { color: #6d4c00; margin: 2px 0; }
+.cc-sticky { position: sticky; bottom: 0; background: var(--area-bg, #f4f1ea); padding-block: 8px; z-index: 2; }
+.cc-code { font-size: 1.4rem; letter-spacing: 0.15em; direction: ltr; unicode-bidi: isolate; background: rgba(0, 0, 0, 0.06); padding: 4px 10px; border-radius: 6px; }
+.cc-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cc-card { padding: 16px; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #2f7d4f, #1f4e8a); display: grid; gap: 6px; }
+.cc-card[data-theme='desert'] { background: linear-gradient(135deg, #b9783c, #7a4a1f); }
+.cc-card[data-theme='castle'] { background: linear-gradient(135deg, #5b5f8a, #2c2f52); }
+.cc-card[data-theme='future'] { background: linear-gradient(135deg, #1b8fa6, #4a2d8a); }
+.cc-card h2 { margin: 0; }
+.cc-card__meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.cc-children { display: grid; gap: 8px; }
+@media (max-width: 480px) { .cc-q { flex-direction: column; } .cc-lesson__body { padding-inline-start: 0; } }
