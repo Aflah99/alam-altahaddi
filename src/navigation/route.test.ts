@@ -12,6 +12,8 @@ describe('hash routes', () => {
     { name: 'locker' },
     { name: 'account' },
     { name: 'groups' },
+    { name: 'discover' },
+    { name: 'joincourse', code: 'ABCD234XYZ' },
     { name: 'import' },
     { name: 'parent', path: [] },
     { name: 'parent', path: ['child', 'abc'] },

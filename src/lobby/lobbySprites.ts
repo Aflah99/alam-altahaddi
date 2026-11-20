@@ -210,3 +210,26 @@ export const ARENA: SpriteDef = {
   ],
   palette: { O: INK, S: '#c9cfe6', s: '#9aa3c7', Y: '#ffd23f', G: '#3b2d7a', R: '#ff5d5d', B: '#4fb4ff' },
 }
+
+/* ---------- المواد المجتمعية: a little library tower of community courses ---------- */
+export const LIBRARY: SpriteDef = {
+  rows: [
+    '......OOOO......',
+    '....OOrRRrOO....',
+    '..OOrRRRRRRrOO..',
+    '.OrRRRRRYYRRRrO.',
+    'OrRRRRRRYyRRRRrO',
+    'OOOOOOOOOOOOOOOO',
+    '.OWWWWWWWWWWWWO.',
+    '.OWBBWWWWWWYYWO.',
+    '.OWBbWWWWWWYyWO.',
+    '.OWBBWWWWWWYYWO.',
+    '.OWWWWOOOOWWWWO.',
+    '.OWWWOddddOWWWO.',
+    '.OWWWOddddOWWWO.',
+    '.OWWWOdddKOWWWO.',
+    '.OWWWOddddOWWWO.',
+    '.OOOOOOOOOOOOOO.',
+  ],
+  palette: { O: INK, r: '#a8321f', R: '#e5533d', W: '#f6e3b0', B: '#3a7bd5', b: '#2a5aa8', Y: '#ffd84a', y: '#d9a400', d: '#7a4a2b', K: '#ffd84a' },
+}

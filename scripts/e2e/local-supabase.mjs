@@ -258,8 +258,10 @@ async function handleRest(req, res, path, url) {
       const fn = ident(path.slice(5))
       const args = await jsonBody(req)
       const keys = Object.keys(args)
-      // Like PostgREST: JSON arrays become PostgreSQL arrays, other objects stay JSON.
-      const params = keys.map((k) => (Array.isArray(args[k]) ? args[k] : args[k] !== null && typeof args[k] === 'object' ? JSON.stringify(args[k]) : args[k]))
+      // Like PostgREST: arrays of plain values become PostgreSQL arrays (uuid[], text[]); arrays of objects and
+      // objects are JSON (jsonb parameters).
+      const isJson = (v) => v !== null && typeof v === 'object' && (!Array.isArray(v) || v.some((x) => x !== null && typeof x === 'object'))
+      const params = keys.map((k) => (isJson(args[k]) ? JSON.stringify(args[k]) : args[k]))
       const sql = `select public.${fn}(${keys.map((k, i) => `${ident(k)} := $${i + 1}`).join(', ')}) as v`
       const r = await asRole(claims, sql, params)
       const v = r.rows[0]?.v

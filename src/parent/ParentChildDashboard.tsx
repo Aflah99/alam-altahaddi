@@ -5,6 +5,7 @@ import { arabicError, supabase } from '../cloud/client'
 import { ar } from '../quiz/format'
 import { Bars } from './Bars'
 import { lessonInsights, pct, type LessonStat } from './insights'
+import { ChildCommunity } from './community/ChildCommunity'
 import type { ChildRow } from './ParentApp'
 
 interface Counts {
@@ -170,6 +171,7 @@ export function ParentChildDashboard({ kids, childId, onPick }: { kids: ChildRow
       )}
       <QuestionTypes key={`${child.id}:${range}`} studentId={child.id} days={range} />
       <ChildControls key={child.id} studentId={child.id} />
+      <ChildCommunity key={`c-${child.id}`} studentId={child.id} />
     </>
   )
 }

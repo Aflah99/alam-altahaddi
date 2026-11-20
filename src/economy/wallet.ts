@@ -115,6 +115,9 @@ export interface MissionReward {
   alreadyRewarded: number
   /** True when the mission bonus had been earned on an earlier attempt. */
   bonusEarlier: boolean
+  /** A community course: rewards are small and capped per day. */
+  community?: boolean
+  dailyLimitReached?: boolean
   before: WalletView
   after: WalletView
 }

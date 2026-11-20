@@ -59,6 +59,7 @@ export function characterOf(characterId: string, appearance: unknown): Character
  */
 export function useCloudGame(active: boolean) {
   const [catalog, setCatalog] = useState<CatalogSubject[] | null>(null)
+  const [community, setCommunity] = useState<CatalogSubject[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const [state, setState] = useState<GameState | null>(null)
   const [stateError, setStateError] = useState<string | null>(null)
@@ -76,6 +77,15 @@ export function useCloudGame(active: boolean) {
     }
   }, [])
 
+  /** The student's enrolled community courses (they never replace the official catalogue). */
+  const reloadCommunity = useCallback(async () => {
+    try {
+      setCommunity(await api.getMyCourseCatalog())
+    } catch {
+      setCommunity([])
+    }
+  }, [])
+
   const reloadState = useCallback(async () => {
     try {
       setState(await api.getGameState())
@@ -90,11 +100,13 @@ export function useCloudGame(active: boolean) {
     const t = window.setTimeout(() => {
       void reloadCatalog(true)
       void reloadState()
+      void reloadCommunity()
     }, 0)
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         void reloadCatalog()
         void reloadState()
+        void reloadCommunity()
       }
     }
     document.addEventListener('visibilitychange', onVisible)
@@ -102,7 +114,7 @@ export function useCloudGame(active: boolean) {
       window.clearTimeout(t)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [active, reloadCatalog, reloadState])
+  }, [active, reloadCatalog, reloadState, reloadCommunity])
 
   const view = useMemo(() => (state ? viewFromState(state) : null), [state])
   const equipped = useMemo(() => (state?.equipped ?? {}) as Partial<Record<Slot, string>>, [state])
@@ -204,6 +216,8 @@ export function useCloudGame(active: boolean) {
 
   return {
     catalog,
+    community,
+    reloadCommunity,
     catalogError,
     reloadCatalog,
     state,

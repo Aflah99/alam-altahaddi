@@ -11,6 +11,8 @@ import './multiplayer.css'
 
 interface Props {
   subjects: CatalogSubject[]
+  /** The student's enrolled community courses; only public ones can be used, and matches with them pay no rewards. */
+  community?: CatalogSubject[]
   allowed: boolean
   /** Code from an invite link (#/join/CODE). */
   inviteCode?: string
@@ -20,9 +22,11 @@ interface Props {
 }
 
 /** غرف التحدّي — create a private room or join one with a code. Rooms are never listed publicly. */
-export function RoomsHub({ subjects, allowed, inviteCode, onEnter, onBack, play }: Props) {
+export function RoomsHub({ subjects, community = [], allowed, inviteCode, onEnter, onBack, play }: Props) {
   const [mode, setMode] = useState<api.ModeId>('speed')
   const [chosen, setChosen] = useState<string[]>(subjects.map((s) => s.id))
+  const [commChosen, setCommChosen] = useState<string[]>([])
+  const publicCommunity = community.filter((c) => (c as { visibility?: string }).visibility === 'public')
   const [duration, setDuration] = useState(150)
   const [code, setCode] = useState(inviteCode ?? '')
   const [busy, setBusy] = useState(false)
@@ -53,7 +57,9 @@ export function RoomsHub({ subjects, allowed, inviteCode, onEnter, onBack, play 
   }
   const create = () =>
     run(async () => {
-      const r = await api.createRoom(mode, chosen.length === subjects.length ? [] : chosen, duration)
+      const picked = commChosen.filter((id) => publicCommunity.some((c) => c.id === id))
+      const list = picked.length > 0 ? [...chosen, ...picked] : chosen.length === subjects.length ? [] : chosen
+      const r = await api.createRoom(mode, list, duration)
       play('confirm')
       onEnter(r.room_id)
     })
@@ -140,6 +146,18 @@ export function RoomsHub({ subjects, allowed, inviteCode, onEnter, onBack, play 
                   </label>
                 ))}
               </fieldset>
+              {publicCommunity.length > 0 && (
+                <fieldset className="mp__fieldset">
+                  <legend>مواد مجتمعية عامة (بلا مكافآت)</legend>
+                  {publicCommunity.map((s) => (
+                    <label key={s.id} className="area__check">
+                      <input type="checkbox" checked={commChosen.includes(s.id)} onChange={(e) => setCommChosen((c) => (e.target.checked ? [...c, s.id] : c.filter((x) => x !== s.id)))} />
+                      {s.name_ar}
+                    </label>
+                  ))}
+                  <p className="mp__summary">المباريات التي فيها أسئلة مجتمعية لا تمنح خبرة أو عملات، لضمان العدالة.</p>
+                </fieldset>
+              )}
               {MODES.find((m) => m.id === mode)!.timed && (
                 <label className="mp__field">
                   مدة المباراة

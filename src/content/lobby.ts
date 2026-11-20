@@ -6,7 +6,7 @@ export interface InfoContent {
 
 /** Arabic copy for the player lobby. */
 
-export type LobbyPlaceId = 'map' | 'rooms' | 'closet' | 'shop' | 'board'
+export type LobbyPlaceId = 'map' | 'rooms' | 'closet' | 'shop' | 'board' | 'discover'
 
 export const LOBBY_PLACES: Record<LobbyPlaceId, { label: string; info: InfoContent }> = {
   map: {
@@ -28,6 +28,11 @@ export const LOBBY_PLACES: Record<LobbyPlaceId, { label: string; info: InfoConte
     // Opens the shop screen (no info panel).
     label: 'المتجر',
     info: { title: 'المتجر', paragraphs: [], status: '' },
+  },
+  discover: {
+    // Opens اكتشف المواد (no info panel).
+    label: 'المواد المجتمعية',
+    info: { title: 'المواد المجتمعية', paragraphs: [], status: '' },
   },
   board: {
     label: 'المتصدرون',

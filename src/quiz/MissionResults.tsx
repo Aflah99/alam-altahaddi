@@ -155,6 +155,13 @@ function RewardPanel({ reward, correct, total, legacy, reducedMotion, onShop }: 
   } else if (reward.alreadyRewarded > 0) {
     note = `${ar(reward.alreadyRewarded)} من إجاباتك الصحيحة حصلت على مكافأتها من قبل، فلم تُحتسب مرة أخرى.`
   }
+  if (reward.community) {
+    note = reward.dailyLimitReached
+      ? 'وصلت إلى الحد اليومي لمكافآت المواد المجتمعية. يمكنك متابعة التعلّم، وتتجدّد المكافآت غدًا.'
+      : !earned
+        ? 'مكافآت المواد المجتمعية صغيرة ومحدودة: لا تُمنح مرة ثانية للأسئلة نفسها، ولا في مواد أنشأتها عائلتك.'
+        : 'مكافآت المواد المجتمعية صغيرة ومحدودة يوميًا؛ المواد الأساسية تمنح مكافآت أكبر.'
+  }
 
   return (
     <section className="results__rewards" aria-labelledby="rewards-title">

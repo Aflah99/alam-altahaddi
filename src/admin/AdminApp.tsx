@@ -1,6 +1,7 @@
 import { useAuth } from '../cloud/auth'
 import { AreaMessage, AreaShell } from '../cloud/AreaShell'
 import { BooksSection } from './sections/Books'
+import { CommunitySection } from './sections/Community'
 import { EconomySection } from './sections/Economy'
 import { GenerateSection } from './sections/Generate'
 import { HomeSection } from './sections/Home'
@@ -15,6 +16,7 @@ const NAV = [
   { id: 'home', label: 'الرئيسية' },
   { id: 'subjects', label: 'المواد الدراسية' },
   { id: 'lessons', label: 'الوحدات والدروس' },
+  { id: 'community', label: 'المواد المجتمعية' },
   { id: 'books', label: 'الكتب والمصادر' },
   { id: 'generate', label: 'توليد الأسئلة' },
   { id: 'review', label: 'مراجعة الأسئلة' },
@@ -64,6 +66,7 @@ export default function AdminApp({ path, navigate, onExit }: { path: string[]; n
       {section === 'home' && <HomeSection navigate={navigate} />}
       {section === 'subjects' && <SubjectsSection navigate={navigate} />}
       {section === 'lessons' && <LessonsSection subjectId={arg} navigate={navigate} />}
+      {section === 'community' && <CommunitySection arg={arg} navigate={navigate} />}
       {section === 'books' && <BooksSection navigate={navigate} />}
       {section === 'generate' && <GenerateSection navigate={navigate} />}
       {section === 'review' && <ReviewSection key={arg?.includes(':') ? arg : 'all'} questionId={arg} navigate={navigate} />}

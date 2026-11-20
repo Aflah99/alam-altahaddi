@@ -32,6 +32,7 @@ import { WorldScreen } from './world/WorldScreen'
 const ParentApp = lazy(() => import('./parent/ParentApp'))
 const AdminApp = lazy(() => import('./admin/AdminApp'))
 const GroupsScreen = lazy(() => import('./groups/StudentGroupsScreen'))
+const DiscoverScreen = lazy(() => import('./community/DiscoverScreen'))
 const RoomsHub = lazy(() => import('./multiplayer/RoomsHub').then((m) => ({ default: m.RoomsHub })))
 const RoomScreen = lazy(() => import('./multiplayer/RoomScreen').then((m) => ({ default: m.RoomScreen })))
 
@@ -52,13 +53,15 @@ export function App() {
   const role = signedIn?.role ?? null
 
   usePreferenceSync(signedIn?.userId ?? null, settings, updateSettings)
+  const joinCode = route.name === 'joincourse' ? route.code : ''
 
   // Signed-in adults are kept inside their own area.
   useEffect(() => {
     if (!signedIn || signedIn.recovery || !role) return
-    if (role === 'parent' && route.name !== 'parent' && route.name !== 'account') navigate({ name: 'parent', path: [] }, { replace: true })
+    if (role === 'parent' && route.name === 'joincourse') navigate({ name: 'parent', path: ['courses', 'join', joinCode] }, { replace: true })
+    else if (role === 'parent' && route.name !== 'parent' && route.name !== 'account') navigate({ name: 'parent', path: [] }, { replace: true })
     if (role === 'admin' && route.name !== 'admin' && route.name !== 'account') navigate({ name: 'admin', path: [] }, { replace: true })
-  }, [signedIn, role, route.name, navigate])
+  }, [signedIn, role, route.name, joinCode, navigate])
 
   const afterSignIn = useCallback(
     (r: string | null) => {
@@ -130,6 +133,8 @@ const MUSIC: Partial<Record<string, TrackId>> = {
   locker: 'shop',
   groups: 'lobby',
   rooms: 'room',
+  discover: 'lobby',
+  joincourse: 'lobby',
   import: 'lobby',
 }
 
@@ -169,9 +174,11 @@ function StudentGame({
     : null
   const view = cloud.view
   const outfit = cloud.outfit
-  const subjects: readonly SubjectView[] = useMemo(() => (cloud.catalog ?? []).map(subjectFromCatalog), [cloud.catalog])
+  // Official subjects first and unchanged; enrolled community courses follow and are labelled as such.
+  const fullCatalog = useMemo(() => [...(cloud.catalog ?? []), ...cloud.community.filter((c) => !(cloud.catalog ?? []).some((o) => o.id === c.id))], [cloud.catalog, cloud.community])
+  const subjects: readonly SubjectView[] = useMemo(() => fullCatalog.map(subjectFromCatalog), [fullCatalog])
 
-  const gameRoutes = ['start', 'lobby', 'map', 'world', 'chapters', 'quiz', 'shop', 'locker', 'select', 'groups', 'import', 'rooms', 'room', 'join']
+  const gameRoutes = ['start', 'lobby', 'map', 'world', 'chapters', 'quiz', 'shop', 'locker', 'select', 'groups', 'import', 'rooms', 'room', 'join', 'discover', 'joincourse']
   const subject = 'subject' in route ? subjects.find((s) => s.id === route.subject) : undefined
   const level = subject ? LEVELS[subject.levelId] : undefined
 
@@ -197,7 +204,7 @@ function StudentGame({
           ? `${screen}:${subject?.id}`
           : screen
 
-  const cloudSubject = subject?.cloudId ? cloud.catalog?.find((c) => c.id === subject.cloudId) : undefined
+  const cloudSubject = subject?.cloudId ? fullCatalog.find((c) => c.id === subject.cloudId) : undefined
 
   return (
     <div key={key} className="screen">
@@ -219,6 +226,7 @@ function StudentGame({
         <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
           <RoomsHub
             subjects={cloud.catalog ?? []}
+            community={cloud.community}
             allowed={view.controls.multiplayer_allowed}
             inviteCode={route.name === 'join' ? route.code : undefined}
             onEnter={(id) => navigate({ name: 'room', id }, { replace: true })}
@@ -238,6 +246,17 @@ function StudentGame({
             }}
             play={play}
             setMusic={setRoomMusic}
+          />
+        </Suspense>
+      )}
+      {(screen === 'discover' || screen === 'joincourse') && (
+        <Suspense fallback={<Waiting text="جارٍ التحميل…" />}>
+          <DiscoverScreen
+            initialCode={route.name === 'joincourse' ? route.code : undefined}
+            onBack={() => goBack({ name: 'lobby' })}
+            onPlay={(slug) => navigate({ name: 'world', subject: slug })}
+            onChanged={() => void cloud.reloadCommunity()}
+            play={play}
           />
         </Suspense>
       )}
@@ -275,6 +294,7 @@ function StudentGame({
           onChangeCharacter={() => navigate({ name: 'select' })}
           onOpenMap={() => navigate({ name: 'map' })}
           onOpenRooms={() => navigate({ name: 'rooms' })}
+          onOpenDiscover={() => navigate({ name: 'discover' })}
           onOpenShop={() => navigate({ name: 'shop' })}
           onOpenLocker={() => navigate({ name: 'locker' })}
           onOpenBoard={() => navigate({ name: 'groups' })}
@@ -328,6 +348,7 @@ function StudentGame({
             play('portal')
             navigate({ name: 'world', subject: id })
           }}
+          onDiscover={() => navigate({ name: 'discover' })}
           onBack={() => goBack({ name: 'lobby' })}
         />
       )}
@@ -350,7 +371,7 @@ function StudentGame({
           units={cloudSubject ? treeFromCatalog(cloudSubject, cloud.state?.mission_best ?? {}) : null}
           error={!!cloud.catalogError && !cloud.catalog}
           lastLessonId={null}
-          sourceNote={`الأسئلة من «${cloudSubject?.source_label || subject.title}». تقدّمك ومكافآتك محفوظة في حسابك ويتحقق منها الخادم.`}
+          sourceNote={subject.community ? `مادة مجتمعية أنشأها ${subject.creator ?? 'ولي أمر'}، ولم تُراجع أكاديميًا من المنصة. مكافآتها محدودة يوميًا ويتحقق منها الخادم.` : `الأسئلة من «${cloudSubject?.source_label || subject.title}». تقدّمك ومكافآتك محفوظة في حسابك ويتحقق منها الخادم.`}
           onRetry={() => void cloud.reloadCatalog(true)}
           onStartMission={(lesson, mission) => {
             play('missionStart')

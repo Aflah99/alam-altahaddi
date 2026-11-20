@@ -53,6 +53,17 @@ language sql stable security definer set search_path = public as $$
   from public.course_ratings where subject_id = p_subject
 $$;
 
+/** Community content may not claim to be official, verified or approved by the platform. */
+create or replace function public.cc_no_claim(p text, p_field text) returns void
+language plpgsql stable security definer set search_path = public as $$
+declare n text := ' ' || public.ar_normalize(coalesce(p, '')) || ' ';
+begin
+  if n ~* '\s(رسمي|رسميه|معتمد|معتمده|موثق|موثقه|مصدق|مصدقه|الاداره|المشرف|المشرفين|المنصه|official|verified|approved|admin|moderator|staff)\s'
+     or n ~* 'تمت مراجعته|تمت المراجعه|مراجع من|معتمد من|approved by|verified by' then
+    raise exception 'official_claim' using errcode = '22023', detail = p_field;
+  end if;
+end $$;
+
 /** Validates and normalises one question item (manual form or bulk import). */
 create or replace function public.cc_validate_item(p jsonb) returns jsonb
 language plpgsql stable security definer set search_path = public as $$
@@ -150,6 +161,7 @@ language plpgsql security definer set search_path = public as $$
 declare v_user uuid := public.require_parent(); v text;
 begin
   v := public.cc_clean(p_name, 2, 30, 'creator_name');
+  perform public.cc_no_claim(v, 'creator_name');
   if v ~ '@' or v ~ '[0-9]{6,}' then raise exception 'unsafe_content' using errcode = '22023', detail = 'creator_name'; end if;
   perform public.cc_ensure_creator(v_user);
   update public.creator_profiles set display_name = v where user_id = v_user;
@@ -177,6 +189,8 @@ begin
   if v_icon not in ('book', 'star', 'flask', 'globe', 'calc', 'quill', 'leaf', 'gear') then raise exception 'invalid icon' using errcode = '22023'; end if;
   if v_theme not in ('meadow', 'forest', 'desert', 'castle', 'future') then raise exception 'invalid theme' using errcode = '22023'; end if;
   perform public.cc_rate(v_user, 'course_create', interval '1 day', 20);
+  perform public.cc_no_claim(p ->> 'name_ar', 'name');
+  perform public.cc_no_claim(p ->> 'description', 'description');
   perform public.cc_ensure_creator(v_user);
   loop
     v_slug := 'c-' || substr(encode(extensions.gen_random_bytes(5), 'hex'), 1, 8);
@@ -198,6 +212,8 @@ begin
   s := public.cc_own_course(p_id);
   perform public.cc_editable(s);
   perform public.cc_rate(v_user, 'question_write', interval '1 day', (select question_writes_per_day from public.community_settings));
+  if p ? 'name_ar' then perform public.cc_no_claim(p ->> 'name_ar', 'name'); end if;
+  if p ? 'description' then perform public.cc_no_claim(p ->> 'description', 'description'); end if;
   update public.subjects set
     name_ar = case when p ? 'name_ar' then public.cc_clean(p ->> 'name_ar', 3, 60, 'name') else name_ar end,
     description = case when p ? 'description' then public.cc_clean(p ->> 'description', 0, 400, 'description', true) else description end,
@@ -527,6 +543,12 @@ begin
   if (c ->> 'units')::int < 1 then v_err := v_err || jsonb_build_object('code', 'no_units'); end if;
   if (c ->> 'lessons')::int < 1 then v_err := v_err || jsonb_build_object('code', 'no_lessons'); end if;
   if (c ->> 'questions')::int < 5 then v_err := v_err || jsonb_build_object('code', 'few_questions', 'have', c -> 'questions', 'need', 5); end if;
+  begin
+    perform public.cc_no_claim(s.name_ar, 'name');
+    perform public.cc_no_claim(s.description, 'description');
+  exception when others then
+    v_err := v_err || jsonb_build_object('code', 'official_claim');
+  end;
   if public.cc_unsafe(s.name_ar) or public.cc_unsafe(s.description) or public.cc_unsafe(s.category) or public.cc_unsafe(s.source_label) then
     v_err := v_err || jsonb_build_object('code', 'unsafe', 'where', 'course');
   end if;
@@ -643,7 +665,8 @@ declare v_user uuid := public.require_parent(); s public.subjects%rowtype; v_use
 begin
   s := public.cc_own_course(p_id);
   v_used := exists (select 1 from public.quiz_sessions qs join public.lessons l on l.id = qs.lesson_id where l.subject_id = p_id)
-         or exists (select 1 from public.course_reports where subject_id = p_id);
+         or exists (select 1 from public.course_reports where subject_id = p_id)
+         or exists (select 1 from public.questions q where q.subject_id = p_id and public.cc_question_used(q.id));
   if v_used then
     update public.subjects set status = 'archived' where id = p_id;
   else

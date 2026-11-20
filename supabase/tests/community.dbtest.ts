@@ -99,6 +99,20 @@ describe('official curriculum is untouched', () => {
   })
 })
 
+describe('community content cannot claim to be official', () => {
+  it('rejects official / approved / staff claims in names, descriptions and creator names', async () => {
+    const { parent } = await family()
+    for (const name of ['مادة رسمية للصف الثامن', 'معتمد من الوزارة والإدارة', 'Official science', 'verified by admin'])
+      await expect(rpc(parent, 'cc_create_course', j({ name_ar: name, description: 'وصف عادي للمادة' }))).rejects.toThrow(/official_claim/)
+    await expect(rpc(parent, 'cc_create_course', j({ name_ar: 'مادة عادية', description: 'هذه مادة تمت مراجعتها من المنصة' }))).rejects.toThrow(/official_claim/)
+    await expect(rpc(parent, 'cc_set_creator_name', 'مشرف المنصة')).rejects.toThrow(/official_claim/)
+    await expect(rpc(parent, 'cc_set_creator_name', 'ali@example.com')).rejects.toThrow(/unsafe_content|official_claim/)
+    expect(await rpc(parent, 'cc_set_creator_name', 'أبو سالم')).toBe('أبو سالم')
+    const c = await course(parent, { name: 'مادة الرسم والتلوين' }) // "الرسم" is not "رسمي"
+    await expect(rpc(parent, 'cc_update_course', c.id, j({ name_ar: 'مادة رسمية جدًا' }))).rejects.toThrow(/official_claim/)
+  })
+})
+
 describe('authoring', () => {
   it('creates a course with units, lessons, manual MCQ and written questions, and previews it', async () => {
     const { parent } = await family()

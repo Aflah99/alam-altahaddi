@@ -29,6 +29,7 @@ export const saveMyPreferences = (prefs: Record<string, unknown>) => call<void>(
 /* ---------- student game ---------- */
 
 export const getCatalog = () => call<CatalogSubject[]>('get_catalog')
+export const getMyCourseCatalog = () => call<CatalogSubject[]>('get_my_course_catalog')
 export const getGameState = () => call<GameState>('get_my_game_state')
 export const startQuizSession = (missionId: string) => call<QuizSession>('start_quiz_session', { p_mission: missionId })
 export const requestHint = (sessionId: string, questionId: string) =>
